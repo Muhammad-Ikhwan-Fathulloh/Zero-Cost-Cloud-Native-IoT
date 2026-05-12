@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT AI Dashboard - LocalStack</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>IoT<span>AI</span> Bridge</h1>
+                <p>Advanced LocalStack Monitoring</p>
+            </div>
+            <div class="status">
+                <span id="connection-status" class="offline">Offline</span>
+            </div>
+        </header>
+
+        <main>
+            <section class="metrics">
+                <div class="card glass">
+                    <h3>Temperature</h3>
+                    <div class="value" id="temp-val">--°C</div>
+                    <div class="sub-text">Live DHT22 Sensor</div>
+                </div>
+                <div class="card glass">
+                    <h3>Humidity</h3>
+                    <div class="value" id="hum-val">--%</div>
+                    <div class="sub-text">Live DHT22 Sensor</div>
+                </div>
+                <div class="card glass">
+                    <h3>LED Status</h3>
+                    <div class="value" id="led-val">OFF</div>
+                    <div class="sub-text">AI Decision Engine</div>
+                </div>
+            </section>
+
+            <section class="charts glass">
+                <h3>Real-time History</h3>
+                <canvas id="sensorChart"></canvas>
+            </section>
+
+            <section class="logs-section glass">
+                <div class="logs-header">
+                    <h3>System Logs (DynamoDB)</h3>
+                    <button id="refresh-logs" class="btn">Refresh Logs</button>
+                    <button id="train-model" class="btn secondary">Retrain AI (S3)</button>
+                </div>
+                <div class="table-container">
+                    <table id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Temp (°C)</th>
+                                <th>Hum (%)</th>
+                                <th>AI Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body">
+                            <!-- Logs will appear here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Noc Lab IoT AI - Powered by LocalStack & FastAPI</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8000";
+        
+        // Initialize Chart
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    borderColor: '#ff4b2b',
+                    data: [],
+                    tension: 0.4
+                }, {
+                    label: 'Humidity (%)',
+                    borderColor: '#00d2ff',
+                    data: [],
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#aaa' } },
+                    y: { ticks: { color: '#aaa' } }
+                }
+            }
+        });
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch(`${API_BASE}/logs`);
+                const data = await res.json();
+                const tbody = document.getElementById('logs-body');
+                tbody.innerHTML = '';
+                
+                data.forEach(log => {
+                    const row = `<tr>
+                        <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
+                        <td>${log.temp}</td>
+                        <td>${log.hum}</td>
+                        <td><span class="badge ${log.led_status}">${log.led_status}</span></td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                console.error("Failed to fetch logs", e);
+            }
+        }
+
+        document.getElementById('refresh-logs').onclick = fetchLogs;
+
+        document.getElementById('train-model').onclick = async () => {
+            if(!confirm("Start AI Training and upload to LocalStack S3?")) return;
+            const btn = document.getElementById('train-model');
+            btn.innerText = "Training...";
+            try {
+                const res = await fetch(`${API_BASE}/train`, { method: 'POST' });
+                const result = await res.json();
+                alert(result.message);
+            } catch (e) {
+                alert("Training failed!");
+            } finally {
+                btn.innerText = "Retrain AI (S3)";
+            }
+        };
+
+        // Poll for updates (Simulation of live data since we can't easily WS from here to multiple clients without complex broadcast)
+        // But we can check status
+        setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/`);
+                if(res.ok) {
+                    document.getElementById('connection-status').innerText = "Online";
+                    document.getElementById('connection-status').className = "online";
+                }
+            } catch (e) {
+                document.getElementById('connection-status').innerText = "Offline";
+                document.getElementById('connection-status').className = "offline";
+            }
+        }, 5000);
+
+        fetchLogs();
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+**/.env
+**/.env.local
+.env
+.env.local
+data/*.pkl
+
+# Arduino
+build/
+libraries/
+
+# Frontend
+node_modules/
+dist/
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
