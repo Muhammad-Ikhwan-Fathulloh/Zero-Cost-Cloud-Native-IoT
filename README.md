@@ -2,6 +2,44 @@
 
 An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simulation using **LocalStack**. The entire infrastructure is designed to run locally without any cloud costs (Zero-Cost).
 
+## 🏗️ Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph "Edge Devices"
+        ESP32["ESP32 Microcontroller (DHT22 & LED)"]
+    end
+
+    subgraph "User Interface"
+        Dash["Frontend Dashboard (Glassmorphism)"]
+    end
+
+    subgraph "Core System"
+        API["FastAPI Backend (AI Engine)"]
+    end
+
+    subgraph "AWS LocalStack Infrastructure"
+        SQS["AWS SQS (Sensor Queue)"]
+        DDB[("AWS DynamoDB (Sensor Data)")]
+        S3["AWS S3 (ML Models)"]
+        SNS["AWS SNS (IoT Alerts)"]
+        CW["AWS CloudWatch (Metrics)"]
+    end
+
+    ESP32 -->|"Sensor Data"| API
+    API -->|"Actuator Command"| ESP32
+    
+    Dash <-->|"WebSocket/REST"| API
+    
+    API -->|"Async Processing"| SQS
+    SQS -->|"Consume"| API
+    
+    API -->|"Store Logs"| DDB
+    API <-->|"Fetch/Save Model"| S3
+    API -->|"Publish Alert"| SNS
+    API -->|"Push Metrics"| CW
+```
+
 ## ✨ Key Features
 - **AWS DynamoDB**: Real-time sensor log storage with NoSQL schema.
 - **AWS S3**: Storage for ML models (`.pkl`) trained automatically for CI/CD cycles.
