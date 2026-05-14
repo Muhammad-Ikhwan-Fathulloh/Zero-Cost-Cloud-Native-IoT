@@ -6,38 +6,49 @@ An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simul
 
 ```mermaid
 graph TD
-    subgraph "Edge Devices"
-        ESP32["fas:fa-microchip ESP32 Microcontroller (DHT22 & LED)"]
+    classDef edge fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#000
+    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef api fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef aws fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+
+    subgraph "📡 Edge Environment"
+        ESP32["fas:fa-microchip ESP32<br/>(Sensors: DHT22, Actuators: LED)"]:::edge
     end
 
-    subgraph "User Interface"
-        Dash["fas:fa-desktop Frontend Dashboard (Glassmorphism)"]
+    subgraph "💻 Client Interface"
+        Dash["fas:fa-desktop Web Dashboard<br/>(Real-time Visualization)"]:::ui
     end
 
-    subgraph "Core System"
-        API["fas:fa-cogs FastAPI Backend (AI Engine)"]
+    subgraph "⚙️ Core Application System"
+        API["fas:fa-server FastAPI Gateway<br/>(REST & WebSockets)"]:::api
+        AI["fas:fa-brain AI Decision Engine<br/>(RandomForest Classifier)"]:::api
+        Worker["fas:fa-cogs Async Background Worker"]:::api
     end
 
-    subgraph "AWS LocalStack Infrastructure"
-        SQS["fab:fa-aws AWS SQS (fas:fa-layer-group Sensor Queue)"]
-        DDB[("fab:fa-aws AWS DynamoDB (fas:fa-database Sensor Data)")]
-        S3["fab:fa-aws AWS S3 (fas:fa-server ML Models)"]
-        SNS["fab:fa-aws AWS SNS (fas:fa-envelope IoT Alerts)"]
-        CW["fab:fa-aws AWS CloudWatch (fas:fa-chart-line Metrics)"]
+    subgraph "☁️ AWS Services (Simulated via LocalStack)"
+        SQS["fab:fa-aws SQS<br/>(Event Queue)"]:::aws
+        DDB[("fab:fa-aws DynamoDB<br/>(Sensor Logs)")]:::aws
+        S3[("fab:fa-aws S3<br/>(ML Model Storage)")]:::aws
+        SNS["fab:fa-aws SNS<br/>(Push Notifications)"]:::aws
+        CW["fab:fa-aws CloudWatch<br/>(System Metrics)"]:::aws
     end
 
-    ESP32 -->|"Sensor Data"| API
-    API -->|"Actuator Command"| ESP32
+    %% Connections
+    ESP32 -- "1. Sends Telemetry" --> API
+    API -- "6. Control Signal (LED)" --> ESP32
     
-    Dash <-->|"WebSocket/REST"| API
+    Dash <== "2. Live Data Stream" ==> API
     
-    API -->|"Async Processing"| SQS
-    SQS -->|"Consume"| API
+    API -- "3. Inference Request" --> AI
+    AI -. "Loads model (.pkl)" .-> S3
+    AI -- "Prediction Result" --> API
     
-    API -->|"Store Logs"| DDB
-    API <-->|"Fetch/Save Model"| S3
-    API -->|"Publish Alert"| SNS
-    API -->|"Push Metrics"| CW
+    API -- "4. Enqueue Data" --> SQS
+    SQS -- "Consume Event" --> Worker
+    
+    Worker -- "5a. Save to Table" --> DDB
+    Worker -- "5b. Publish if Alert Triggered" --> SNS
+    Worker -- "5c. Push Custom Metrics" --> CW
 ```
 
 ## ✨ Key Features
@@ -47,7 +58,7 @@ graph TD
 - **AWS SQS**: Event-Driven architecture using message queues for asynchronous data processing.
 - **AWS CloudWatch**: Monitoring sensor metrics (Temperature/Humidity) for infrastructure trend analysis.
 - **AI Decision Engine**: Environmental condition classification using RandomForest for actuator control (LED).
-- **Premium Dashboard**: Real-time data visualization with Glassmorphism UI & Chart.js.
+- **Monitoring Dashboard**: Real-time data visualization with Modern UI & Chart.js.
 
 ## 📂 Folder Structure
 ```text
