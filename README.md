@@ -5,30 +5,39 @@ An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simul
 ## 🏗️ Architecture Diagram
 
 ```mermaid
-architecture-beta
-    group edge(fas:fa-microchip)[Edge Devices]
-    group ui(fas:fa-desktop)[User Interface]
-    group core(fas:fa-server)[Core System]
-    group aws(logos:aws)[AWS LocalStack]
+graph TD
+    subgraph "Edge Devices"
+        ESP32["fas:fa-microchip ESP32 Microcontroller (DHT22 & LED)"]
+    end
 
-    service esp32(fas:fa-microchip)[ESP32 Microcontroller] in edge
-    service dash(fas:fa-desktop)[Frontend Dashboard] in ui
-    service api(fas:fa-cogs)[FastAPI Engine] in core
+    subgraph "User Interface"
+        Dash["fas:fa-desktop Frontend Dashboard (Glassmorphism)"]
+    end
 
-    service sqs(logos:aws-sqs)[AWS SQS] in aws
-    service ddb(logos:aws-dynamodb)[AWS DynamoDB] in aws
-    service s3(logos:aws-s3)[AWS S3] in aws
-    service sns(logos:aws-sns)[AWS SNS] in aws
-    service cw(logos:aws-cloudwatch)[AWS CloudWatch] in aws
+    subgraph "Core System"
+        API["fas:fa-cogs FastAPI Backend (AI Engine)"]
+    end
 
-    esp32:R --> L:api
-    dash:R --> L:api
+    subgraph "AWS LocalStack Infrastructure"
+        SQS["fab:fa-aws AWS SQS (fas:fa-layer-group Sensor Queue)"]
+        DDB[("fab:fa-aws AWS DynamoDB (fas:fa-database Sensor Data)")]
+        S3["fab:fa-aws AWS S3 (fas:fa-server ML Models)"]
+        SNS["fab:fa-aws AWS SNS (fas:fa-envelope IoT Alerts)"]
+        CW["fab:fa-aws AWS CloudWatch (fas:fa-chart-line Metrics)"]
+    end
+
+    ESP32 -->|"Sensor Data"| API
+    API -->|"Actuator Command"| ESP32
     
-    api:R --> L:sqs
-    api:R --> L:ddb
-    api:R --> L:s3
-    api:R --> L:sns
-    api:R --> L:cw
+    Dash <-->|"WebSocket/REST"| API
+    
+    API -->|"Async Processing"| SQS
+    SQS -->|"Consume"| API
+    
+    API -->|"Store Logs"| DDB
+    API <-->|"Fetch/Save Model"| S3
+    API -->|"Publish Alert"| SNS
+    API -->|"Push Metrics"| CW
 ```
 
 ## ✨ Key Features
