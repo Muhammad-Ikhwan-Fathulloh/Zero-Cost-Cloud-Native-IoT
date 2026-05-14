@@ -12,7 +12,7 @@ import json
 import asyncio
 
 app = FastAPI(
-    title="Noc Lab IoT Bridge - Pro",
+    title="Noc Lab IoT Bridge",
     description="IoT Monitoring with S3, SNS, SQS, DynamoDB, & CloudWatch via LocalStack",
     version="3.0.0"
 )
