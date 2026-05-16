@@ -2,7 +2,7 @@
 
 [English](README.md) | [Bahasa Indonesia](README-id.md)
 
-An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simulation using **LocalStack**. The entire infrastructure is designed to run locally without any cloud costs (Zero-Cost).
+An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simulation using [LocalStack](https://www.localstack.cloud/). The entire infrastructure is designed to run locally using [AWS](https://aws.amazon.com/) patterns without any cloud costs (Zero-Cost).
 
 ## 🏗️ Architecture Diagram
 
@@ -30,6 +30,7 @@ iot-ai-localstack/
 ├── microcontroller/    # ESP32 Code (Arduino/C++)
 │   └── esp32/
 ├── frontend/           # Monitoring Dashboard (HTML/CSS/JS)
+├── images/             # Documentation Assets
 ├── .gitignore
 └── README.md
 ```
@@ -90,9 +91,9 @@ To receive real-time critical alerts on your mobile device:
 Open the `frontend/index.html` file in your browser.
 > **Tip:** Use the "Live Server" extension in VS Code for a better development experience.
 
-### 4. Microcontroller Setup (ESP32)
+### 5. Microcontroller Setup (ESP32)
 1. Open the `microcontroller/esp32/esp32.ino` file in **Arduino IDE**.
-2. Install the following required libraries via the Library Manager or download them manually:
+2. Install the following required libraries via the Library Manager:
    - [DHT sensor library by Adafruit](https://github.com/adafruit/DHT-sensor-library)
    - [WebSockets by Links2004](https://github.com/Links2004/arduinoWebSockets)
    - [ArduinoJson by bblanchon](https://github.com/bblanchon/ArduinoJson)
@@ -107,24 +108,31 @@ Open the `frontend/index.html` file in your browser.
 ## 🛠️ AWS Services Detail
 
 1. **DynamoDB** (NoSQL Database)
-   - **Table Name**: `IoT_Sensor_Data` (Partition Key: `id`)
-   - **Role**: Serves as the primary storage for all sensor data logs (temperature and humidity) sent by the ESP32. The NoSQL schema allows for flexible and efficient time-series data storage.
+   - **Table Name**: `IoT_Sensor_Data`
+   - **Role**: Primary storage for sensor data logs.
 
 2. **S3** (Simple Storage Service)
    - **Bucket Name**: `iot-ai-models`
-   - **Role**: Used as object storage for Machine Learning model files (`.pkl`). This model is loaded by the FastAPI backend at startup to perform environmental condition inference based on sensor data.
+   - **Role**: Storage for Machine Learning model files (`.pkl`).
 
 3. **SNS** (Simple Notification Service)
    - **Topic Name**: `IoT_Alerts`
-   - **Role**: A pub/sub service that handles the notification system. If the AI detects abnormal conditions or the temperature exceeds a threshold, the system publishes an alert to this topic, which can be forwarded as an email or SMS.
+   - **Role**: Handles critical alerts via Telegram & LocalStack.
 
 4. **SQS** (Simple Queue Service)
    - **Queue Name**: `IoT_Sensor_Queue`
-   - **Role**: Acts as a message queue to decouple the data ingestion process from storage and notification processes. Data enters SQS first, then is processed asynchronously by the *Background Worker* to keep the API responsive.
+   - **Role**: Asynchronous message processing queue.
 
 5. **CloudWatch** (Monitoring & Metrics)
    - **Namespace**: `IoT/DHT22`
-   - **Role**: Collects and monitors custom metrics from the sensors. This is useful for performance tracking, data trend analysis, and monitoring the health of the IoT infrastructure system.
+   - **Role**: Tracks temperature and humidity metrics.
+
+## 🔗 References & Community
+- **LocalStack**: [Official Website](https://www.localstack.cloud/)
+- **AWS**: [Official Website](https://aws.amazon.com/)
+- **AWS User Group Bandung**: [Community Page](https://bandung.awscommunity.id/)
 
 ---
+*Developed for the **AWS User Group Bandung** - [bandung.awscommunity.id](https://bandung.awscommunity.id/)*
+
 Developed with ❤️ by [Muhammad Ikhwan Fathulloh](https://github.com/Muhammad-Ikhwan-Fathulloh)
