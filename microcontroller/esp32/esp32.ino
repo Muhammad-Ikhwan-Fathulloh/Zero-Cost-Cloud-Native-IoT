@@ -12,12 +12,14 @@
 #include <DHT.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
+#include <NocML.h>
 
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 
 /* 
  * IoT AI Bridge - ESP32 Client
+ * Library: https://github.com/Nocturnailed-Community/NocML
  * Monitoring DHT22, Controlling Components via FastAPI & LocalStack
  */
 
@@ -49,6 +51,11 @@ bool st_mode = false;
 DHT dht(DHTPIN, DHTTYPE);
 WebSocketsClient webSocket;
 LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// NocML: Local Inference Configuration
+const float weights[2] = {0.85, 0.42}; // Pre-trained weights
+const float bias = -25.5;
+NocML::LogisticRegression logReg(2, weights, bias);
 
 unsigned long lastMsg = 0;
 
@@ -225,5 +232,16 @@ void loop() {
     lcd.print("C  H:");
     lcd.print(h, 1); // 1 desimal
     lcd.print("%");
+
+    // Local Machine Learning Inference (NocML)
+    float features[2] = {t, h}; 
+    int prediction = logReg.predict(features);
+    
+    Serial.print("Local AI Prediction: ");
+    if (prediction == 1) {
+      Serial.println("High Risk / Action Needed (Local)");
+    } else {
+      Serial.println("Normal (Local)");
+    }
   }
 }

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .ml_model import predict_condition, train_model
 from .aws_service import (
     init_resources, dynamodb, send_alert, upload_model_to_s3, 
-    push_to_queue, log_metric, sqs, QUEUE_NAME
+    push_to_queue, log_metric, sqs, QUEUE_NAME, send_telegram_alert
 )
 import uuid
 import datetime
@@ -168,10 +168,12 @@ async def websocket_sensor(websocket: WebSocket):
             
             alert_msg = "High Temp" if temp > 35.0 else "Normal"
             if temp > 35.0:
-                send_alert(f"CRITICAL: High Temp! {temp}°C")
+                msg = f"High Temperature Detected: {temp}°C!"
+                send_alert(f"CRITICAL: {msg}")
+                send_telegram_alert(msg)
                 await manager.broadcast_to_ui({
                     "type": "sys_alert",
-                    "message": f"CRITICAL SNS ALERT: High Temperature Detected ({temp}°C)!"
+                    "message": f"CRITICAL SNS & TELEGRAM ALERT: {msg}"
                 })
 
             # Record Payload

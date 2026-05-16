@@ -109,7 +109,23 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
-### 3. Access Dashboard (Frontend)
+### 3. Environment Configuration (.env)
+Create a `.env` file in the `backend` folder and fill in the following values:
+
+#### 🔹 LocalStack (AWS)
+If you are using **LocalStack Community Edition**, you do not need real AWS credentials. You can use the following default values:
+- `AWS_ACCESS_KEY_ID=test`
+- `AWS_SECRET_ACCESS_KEY=test`
+- `AWS_REGION=us-east-1`
+- `LOCALSTACK_ENDPOINT=http://localhost:4566`
+
+#### 🔹 Telegram Bot (Alert Notifications)
+To receive real-time critical alerts on your mobile device:
+1. **Get Bot Token**: Search for [@BotFather](https://t.me/botfather) on Telegram. Type `/newbot` and follow the steps to receive your `TELEGRAM_BOT_TOKEN`.
+2. **Get Chat ID**: Search for [@userinfobot](https://t.me/userinfobot) on Telegram and send any message. It will return your `Id` which you should use as `TELEGRAM_CHAT_ID`.
+3. Add these keys to your `backend/.env` file.
+
+### 4. Access Dashboard (Frontend)
 Open the `frontend/index.html` file in your browser.
 > **Tip:** Use the "Live Server" extension in VS Code for a better development experience.
 
@@ -120,6 +136,7 @@ Open the `frontend/index.html` file in your browser.
    - [WebSockets by Links2004](https://github.com/Links2004/arduinoWebSockets)
    - [ArduinoJson by bblanchon](https://github.com/bblanchon/ArduinoJson)
    - [LiquidCrystal_I2C by johnrickman](https://github.com/johnrickman/LiquidCrystal_I2C)
+   - [NocML by Nocturnailed-Community](https://github.com/Nocturnailed-Community/NocML)
 3. Adjust the following variables:
    - `ssid`: Your WiFi name.
    - `password`: Your WiFi password.

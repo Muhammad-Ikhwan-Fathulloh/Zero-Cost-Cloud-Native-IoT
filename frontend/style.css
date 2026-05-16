@@ -180,27 +180,67 @@ td {
 .control-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+.control-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 1rem;
 }
 
-.ctrl-btn {
-    padding: 1rem;
-    font-size: 0.9rem;
+.control-item label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-on {
-    background: #10b981 !important;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-    border-color: #10b981 !important;
+/* Toggle Switch Styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 32px;
 }
 
-.btn-off {
-    background: #ef4444 !important;
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-    border-color: #ef4444 !important;
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #334155;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--accent);
+}
+
+input:checked + .slider:before {
+    transform: translateX(28px);
 }
 
 footer {
