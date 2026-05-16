@@ -46,6 +46,10 @@ Then, start LocalStack:
 ```bash
 localstack start -d
 ```
+To stop LocalStack:
+```bash
+localstack stop
+```
 *Services that will be auto-initialized: S3, SQS, SNS, DynamoDB, CloudWatch.*
 
 ### 2. Backend Configuration & Startup
@@ -125,7 +129,11 @@ Open the `frontend/index.html` file in your browser.
 
 5. **CloudWatch** (Monitoring & Metrics)
    - **Namespace**: `IoT/DHT22`
-   - **Role**: Tracks temperature and humidity metrics.
+   - **Role**: Tracks temperature and humidity metrics for infrastructure trend analysis.
+   - **View Metrics**: You can view the collected metrics using the AWS CLI:
+     ```bash
+     aws --endpoint-url=http://localhost:4566 cloudwatch list-metrics --namespace IoT/DHT22
+     ```
 
 ## 🔗 References & Community
 - **LocalStack**: [Official Website](https://www.localstack.cloud/)

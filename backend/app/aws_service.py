@@ -121,6 +121,42 @@ def log_metric(metric_name, value, unit='None'):
     except Exception as e:
         print(f"CloudWatch Error: {e}")
 
+def create_cloudwatch_alarm(threshold=30.0):
+    """Create a CloudWatch Alarm for High Temperature"""
+    try:
+        cloudwatch.put_metric_alarm(
+            AlarmName='High_Temperature_Alarm',
+            ComparisonOperator='GreaterThanThreshold',
+            EvaluationPeriods=1,
+            MetricName='Temperature',
+            Namespace='IoT/DHT22',
+            Period=60,
+            Statistic='Average',
+            Threshold=float(threshold),
+            ActionsEnabled=False,
+            AlarmDescription=f'Alarm when temperature exceeds {threshold}C',
+            Unit='None'
+        )
+        print(f"CloudWatch Alarm created/updated with threshold: {threshold}")
+    except Exception as e:
+        print(f"CloudWatch Alarm Creation Error: {e}")
+
+def get_alarm_status():
+    """Fetch the current state of CloudWatch Alarms"""
+    try:
+        response = cloudwatch.describe_alarms(AlarmNames=['High_Temperature_Alarm'])
+        alarms = response.get('MetricAlarms', [])
+        if alarms:
+            return {
+                "name": alarms[0]['AlarmName'],
+                "state": alarms[0]['StateValue'], # OK, ALARM, INSUFFICIENT_DATA
+                "reason": alarms[0].get('StateReason', 'No reason')
+            }
+        return None
+    except Exception as e:
+        print(f"Error fetching alarm status: {e}")
+        return None
+
 import requests
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")

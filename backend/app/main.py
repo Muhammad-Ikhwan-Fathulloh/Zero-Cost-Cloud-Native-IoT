@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .ml_model import predict_condition, train_model
 from .aws_service import (
     init_resources, dynamodb, send_alert, upload_model_to_s3, 
-    push_to_queue, log_metric, sqs, QUEUE_NAME, send_telegram_alert
+    push_to_queue, log_metric, sqs, QUEUE_NAME, send_telegram_alert,
+    create_cloudwatch_alarm, get_alarm_status
 )
 import uuid
 import datetime
@@ -64,17 +65,19 @@ system_state = {
     "mode": "AUTO", # AUTO or MANUAL
     "kipas": 0,
     "mist": 0,
-    "heater": 0
+    "heater": 0,
+    "temp_threshold": 30.0
 }
 
 class ControlRequest(BaseModel):
-    component: str  # kipas, mist, heater, mode
-    status: int     # 0 or 1
+    component: str  # kipas, mist, heater, mode, threshold
+    status: float   # 0, 1, or value for threshold
 
 # --- Background Worker ---
 @app.on_event("startup")
 async def startup_event():
     init_resources()
+    create_cloudwatch_alarm()
     asyncio.create_task(sqs_worker())
 
 async def sqs_worker():
@@ -124,23 +127,36 @@ async def get_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/alarms", tags=["CloudWatch"])
+async def get_alarms():
+    """Get the current state of CloudWatch Alarms"""
+    status = get_alarm_status()
+    if status:
+        return status
+    return {"name": "High_Temperature_Alarm", "state": "UNKNOWN", "reason": "Alarm not found"}
+
 @app.post("/control", tags=["Control"])
 async def manual_control(req: ControlRequest):
     """Update system state and send to ESP32"""
     if req.component == "mode":
         system_state["mode"] = "MANUAL" if req.status == 1 else "AUTO"
+    elif req.component == "threshold":
+        system_state["temp_threshold"] = float(req.status)
+        # Update CloudWatch Alarm if needed
+        create_cloudwatch_alarm(system_state["temp_threshold"])
     elif req.component in ["kipas", "mist", "heater"]:
         system_state[req.component] = req.status
         system_state["mode"] = "MANUAL" # Auto-switch to manual on override
     
-    # Push update to ESP32
-    await manager.send_to_esp32({
-        "led_control": system_state["kipas"],
-        "control_2": system_state["mist"],
-        "control_3": system_state["heater"],
-        "control_4": 1 if system_state["mode"] == "AUTO" else 0,
-        "msg": f"Manual Override: {req.component}"
-    })
+    # Push update to ESP32 (threshold doesn't need to go to ESP32 for now)
+    if req.component != "threshold":
+        await manager.send_to_esp32({
+            "led_control": system_state["kipas"],
+            "control_2": system_state["mist"],
+            "control_3": system_state["heater"],
+            "control_4": 1 if system_state["mode"] == "AUTO" else 0,
+            "msg": f"Manual Override: {req.component}"
+        })
     
     # Sync UI
     await manager.broadcast_to_ui({"type": "state_update", "state": system_state})
@@ -174,9 +190,9 @@ async def websocket_sensor(websocket: WebSocket):
                 system_state["mist"] = 1 if hum < 40.0 else 0
                 system_state["heater"] = 1 if temp < 24.0 else 0
             
-            alert_msg = "High Temp" if temp > 30.0 else "Normal"
-            if temp > 30.0:
-                msg = f"High Temperature Detected: {temp}°C!"
+            alert_msg = "High Temp" if temp > system_state["temp_threshold"] else "Normal"
+            if temp > system_state["temp_threshold"]:
+                msg = f"High Temperature Detected: {temp}°C! (Limit: {system_state['temp_threshold']}°C)"
                 send_alert(f"CRITICAL: {msg}")
                 send_telegram_alert(msg)
                 await manager.broadcast_to_ui({

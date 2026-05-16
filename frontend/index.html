@@ -54,6 +54,11 @@
                     <div class="value" id="mode-val">AUTO</div>
                     <div class="sub-text">System State</div>
                 </div>
+                <div class="card glass alarm-card" id="alarm-card">
+                    <h3>CloudWatch Alarm</h3>
+                    <div class="value" id="alarm-val">OK</div>
+                    <div class="sub-text" id="alarm-reason">Monitoring...</div>
+                </div>
             </section>
 
             <section class="controls glass">
@@ -86,6 +91,13 @@
                             <input type="checkbox" id="tg-mode">
                             <span class="slider"></span>
                         </label>
+                    </div>
+                    <div class="control-item">
+                        <label>Alert Threshold (°C)</label>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                            <input type="number" id="input-threshold" value="30.0" step="0.5" style="width: 70px; background: rgba(0,0,0,0.2); color: white; border: 1px solid var(--accent); border-radius: 8px; padding: 5px; text-align: center; font-size: 1.1rem;">
+                            <button class="btn" id="btn-save-threshold" style="font-size: 0.7rem; width: 100%;">Apply</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -250,6 +262,10 @@
             document.getElementById('tg-heater').checked = state.heater === 1;
             document.getElementById('tg-mode').checked = state.mode === "MANUAL";
             document.getElementById('mode-label').innerText = `Mode: ${state.mode}`;
+            
+            if (state.temp_threshold) {
+                document.getElementById('input-threshold').value = state.temp_threshold;
+            }
         }
 
         async function sendControl(component, status) {
@@ -267,6 +283,12 @@
         document.getElementById('tg-mist').onchange = (e) => sendControl('mist', e.target.checked ? 1 : 0);
         document.getElementById('tg-heater').onchange = (e) => sendControl('heater', e.target.checked ? 1 : 0);
         document.getElementById('tg-mode').onchange = (e) => sendControl('mode', e.target.checked ? 1 : 0);
+        
+        document.getElementById('btn-save-threshold').onclick = () => {
+            const val = document.getElementById('input-threshold').value;
+            sendControl('threshold', parseFloat(val));
+            alert(`Threshold updated to ${val}°C`);
+        };
 
         async function fetchLogs() {
             try {
@@ -292,7 +314,31 @@
             }
         }
 
+        async function fetchAlarmStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/alarms`);
+                const data = await res.json();
+                const card = document.getElementById('alarm-card');
+                const val = document.getElementById('alarm-val');
+                const reason = document.getElementById('alarm-reason');
+
+                val.innerText = data.state;
+                reason.innerText = data.reason;
+
+                // Update styles
+                card.className = `card glass alarm-card ${data.state}`;
+                val.className = `value ${data.state}`;
+            } catch (e) {
+                console.error("Failed to fetch alarm status", e);
+            }
+        }
+
+        // Poll alarms every 10 seconds
+        setInterval(fetchAlarmStatus, 10000);
+        fetchAlarmStatus();
+
         document.getElementById('refresh-logs').onclick = fetchLogs;
+        // ... (rest of the code)
 
         document.getElementById('train-model').onclick = async () => {
             if (!confirm("Start AI Training and upload to LocalStack S3?")) return;

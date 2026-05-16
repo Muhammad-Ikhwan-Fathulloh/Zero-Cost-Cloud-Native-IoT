@@ -249,3 +249,9 @@ footer {
     color: #64748b;
     font-size: 0.8rem;
 }
+
+.alarm-card.ALARM { border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+.alarm-card.OK { border: 1px solid rgba(255, 255, 255, 0.1); }
+.alarm-card .value.ALARM { color: #ef4444; }
+.alarm-card .value.OK { color: #10b981; }
+.alarm-card .value.INSUFFICIENT_DATA { color: #f59e0b; }

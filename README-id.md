@@ -46,6 +46,10 @@ Kemudian, jalankan LocalStack:
 ```bash
 localstack start -d
 ```
+Untuk menghentikan LocalStack:
+```bash
+localstack stop
+```
 *Layanan yang akan diinisialisasi otomatis: S3, SQS, SNS, DynamoDB, CloudWatch.*
 
 ### 2. Konfigurasi & Menjalankan Backend
@@ -125,7 +129,11 @@ Buka file `frontend/index.html` di browser Anda.
 
 5. **CloudWatch** (Pemantauan & Metrik)
    - **Namespace**: `IoT/DHT22`
-   - **Peran**: Melacak metrik suhu dan kelembapan.
+   - **Peran**: Melacak metrik suhu dan kelembapan untuk analisis tren infrastruktur.
+   - **Lihat Metrik**: Anda dapat melihat metrik yang dikumpulkan menggunakan AWS CLI:
+     ```bash
+     aws --endpoint-url=http://localhost:4566 cloudwatch list-metrics --namespace IoT/DHT22
+     ```
 
 ## 🔗 Referensi & Komunitas
 - **LocalStack**: [Situs Resmi](https://www.localstack.cloud/)
