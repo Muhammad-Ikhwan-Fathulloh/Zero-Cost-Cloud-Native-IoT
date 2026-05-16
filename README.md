@@ -6,60 +6,18 @@ An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simul
 
 ## 🏗️ Architecture Diagram
 
-```mermaid
-graph TD
-    classDef edge fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#000
-    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef api fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef aws fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-
-    subgraph "📡 Edge Environment"
-        ESP32["fas:fa-microchip ESP32<br/>(Sensors: DHT22, Actuators: LED)"]:::edge
-    end
-
-    subgraph "💻 Client Interface"
-        Dash["fas:fa-desktop Web Dashboard<br/>(Real-time Visualization)"]:::ui
-    end
-
-    subgraph "⚙️ Core Application System"
-        API["fas:fa-server FastAPI Gateway<br/>(REST & WebSockets)"]:::api
-        AI["fas:fa-brain AI Decision Engine<br/>(RandomForest Classifier)"]:::api
-        Worker["fas:fa-cogs Async Background Worker"]:::api
-    end
-
-    subgraph "☁️ AWS Services (Simulated via LocalStack)"
-        SQS["fab:fa-aws SQS<br/>(Event Queue)"]:::aws
-        DDB[("fab:fa-aws DynamoDB<br/>(Sensor Logs)")]:::aws
-        S3[("fab:fa-aws S3<br/>(ML Model Storage)")]:::aws
-        SNS["fab:fa-aws SNS<br/>(Push Notifications)"]:::aws
-        CW["fab:fa-aws CloudWatch<br/>(System Metrics)"]:::aws
-    end
-
-    %% Connections
-    ESP32 -- "1. Sends Telemetry" --> API
-    API -- "6. Control Signal (LED)" --> ESP32
-    
-    Dash <== "2. Live Data Stream" ==> API
-    
-    API -- "3. Inference Request" --> AI
-    AI -. "Loads model (.pkl)" .-> S3
-    AI -- "Prediction Result" --> API
-    
-    API -- "4. Enqueue Data" --> SQS
-    SQS -- "Consume Event" --> Worker
-    
-    Worker -- "5a. Save to Table" --> DDB
-    Worker -- "5b. Publish if Alert Triggered" --> SNS
-    Worker -- "5c. Push Custom Metrics" --> CW
-```
+![System Architecture](./images/AIoT_Architecture.png)
 
 ## ✨ Key Features
+![AWS Services Used](./images/ServiceAWS.png)
+
 - **AWS DynamoDB**: Real-time sensor log storage with NoSQL schema.
 - **AWS S3**: Storage for ML models (`.pkl`) trained automatically for CI/CD cycles.
 - **AWS SNS**: Automated alert system via Topics when temperature exceeds thresholds.
 - **AWS SQS**: Event-Driven architecture using message queues for asynchronous data processing.
 - **AWS CloudWatch**: Monitoring sensor metrics (Temperature/Humidity) for infrastructure trend analysis.
 - **AI Decision Engine**: Environmental condition classification using RandomForest for actuator control (LED).
+- **FreeRTOS Multitasking**: Dual-core execution on ESP32 for zero-lag real-time WebSocket communication and sensor processing.
 - **Monitoring Dashboard**: Real-time data visualization with Modern UI & Chart.js.
 
 ## 📂 Folder Structure

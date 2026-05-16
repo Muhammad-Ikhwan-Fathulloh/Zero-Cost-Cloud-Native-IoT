@@ -6,60 +6,18 @@ Proyek pemantauan IoT (DHT22) yang terintegrasi dengan Machine Learning dan simu
 
 ## 🏗️ Diagram Arsitektur
 
-```mermaid
-graph TD
-    classDef edge fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#000
-    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef api fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef aws fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-
-    subgraph "📡 Lingkungan Edge"
-        ESP32["fas:fa-microchip ESP32<br/>(Sensor: DHT22, Aktuator: LED)"]:::edge
-    end
-
-    subgraph "💻 Antarmuka Klien"
-        Dash["fas:fa-desktop Dashboard Web<br/>(Visualisasi Real-time)"]:::ui
-    end
-
-    subgraph "⚙️ Sistem Aplikasi Inti"
-        API["fas:fa-server Gateway FastAPI<br/>(REST & WebSockets)"]:::api
-        AI["fas:fa-brain AI Decision Engine<br/>(RandomForest Classifier)"]:::api
-        Worker["fas:fa-cogs Async Background Worker"]:::api
-    end
-
-    subgraph "☁️ Layanan AWS (Disimulasikan via LocalStack)"
-        SQS["fab:fa-aws SQS<br/>(Antrean Event)"]:::aws
-        DDB[("fab:fa-aws DynamoDB<br/>(Log Sensor)")]:::aws
-        S3[("fab:fa-aws S3<br/>(Penyimpanan Model ML)")]:::aws
-        SNS["fab:fa-aws SNS<br/>(Notifikasi Push)"]:::aws
-        CW["fab:fa-aws CloudWatch<br/>(Metrik Sistem)"]:::aws
-    end
-
-    %% Connections
-    ESP32 -- "1. Mengirim Telemetri" --> API
-    API -- "6. Sinyal Kontrol (LED)" --> ESP32
-    
-    Dash <== "2. Stream Data Langsung" ==> API
-    
-    API -- "3. Permintaan Inferensi" --> AI
-    AI -. "Memuat model (.pkl)" .-> S3
-    AI -- "Hasil Prediksi" --> API
-    
-    API -- "4. Memasukkan Data ke Antrean" --> SQS
-    SQS -- "Konsumsi Event" --> Worker
-    
-    Worker -- "5a. Simpan ke Tabel" --> DDB
-    Worker -- "5b. Publish jika Alert Terpicu" --> SNS
-    Worker -- "5c. Push Custom Metrics" --> CW
-```
+![Arsitektur Sistem](./images/AIoT_Architecture.png)
 
 ## ✨ Fitur Utama
+![Layanan AWS yang Digunakan](./images/ServiceAWS.png)
+
 - **AWS DynamoDB**: Penyimpanan log sensor real-time dengan skema NoSQL.
 - **AWS S3**: Penyimpanan untuk model ML (`.pkl`) yang dilatih otomatis untuk siklus CI/CD.
 - **AWS SNS**: Sistem peringatan otomatis melalui Topik saat suhu melebihi batas.
 - **AWS SQS**: Arsitektur Event-Driven menggunakan antrean pesan untuk pemrosesan data asinkron.
 - **AWS CloudWatch**: Pemantauan metrik sensor (Suhu/Kelembapan) untuk analisis tren infrastruktur.
 - **AI Decision Engine**: Klasifikasi kondisi lingkungan menggunakan RandomForest untuk kontrol aktuator (LED).
+- **FreeRTOS Multitasking**: Eksekusi dual-core pada ESP32 untuk komunikasi WebSocket real-time tanpa lag dan pemrosesan sensor yang efisien.
 - **Monitoring Dashboard**: Visualisasi data real-time dengan UI Modern & Chart.js.
 
 ## 📂 Struktur Folder
