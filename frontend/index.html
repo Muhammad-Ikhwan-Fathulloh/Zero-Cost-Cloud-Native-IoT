@@ -21,7 +21,7 @@
                 <span id="connection-status" class="offline">Offline</span>
             </div>
         </header>
-
+        <div id="alert-banner" class="alert-banner" style="display: none;"></div>
         <main>
             <section class="metrics">
                 <div class="card glass">
@@ -156,8 +156,17 @@
                 updateMetrics(msg.data);
             } else if (msg.type === "state_update") {
                 syncState(msg.state);
+            } else if (msg.type === "sys_alert") {
+                showAlert(msg.message);
             }
         };
+
+        function showAlert(message) {
+            const banner = document.getElementById('alert-banner');
+            banner.innerText = message;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 5000);
+        }
 
         function updateMetrics(data) {
             document.getElementById('temp-val').innerText = `${data.temp}°C`;

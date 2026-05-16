@@ -21,6 +21,22 @@ body {
     padding: 2rem;
 }
 
+.alert-banner {
+    background: #ef4444;
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-weight: 600;
+    animation: flash 1s infinite alternate;
+}
+
+@keyframes flash {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0.8; transform: scale(0.98); }
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;

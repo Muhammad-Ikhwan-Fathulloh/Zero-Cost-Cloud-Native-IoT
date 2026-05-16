@@ -169,6 +169,10 @@ async def websocket_sensor(websocket: WebSocket):
             alert_msg = "High Temp" if temp > 35.0 else "Normal"
             if temp > 35.0:
                 send_alert(f"CRITICAL: High Temp! {temp}°C")
+                await manager.broadcast_to_ui({
+                    "type": "sys_alert",
+                    "message": f"CRITICAL SNS ALERT: High Temperature Detected ({temp}°C)!"
+                })
 
             # Record Payload
             payload = {
