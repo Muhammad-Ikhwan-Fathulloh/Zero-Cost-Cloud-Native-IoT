@@ -208,6 +208,20 @@
                 mode: data.mode_status
             });
 
+            // Add new row to the top of the table
+            const tbody = document.getElementById('logs-body');
+            const row = `<tr>
+                <td>${new Date(data.timestamp).toLocaleTimeString()}</td>
+                <td>${data.temp}</td>
+                <td>${data.hum}</td>
+                <td><span class="badge ${data.led_status}">${data.led_status}</span></td>
+                <td><span class="badge ${data.mist_status || 'OFF'}">${data.mist_status || 'OFF'}</span></td>
+                <td><span class="badge ${data.heater_status || 'OFF'}">${data.heater_status || 'OFF'}</span></td>
+                <td><span class="badge ${data.mode_status || 'ON'}">${data.mode_status}</span></td>
+            </tr>`;
+            tbody.insertAdjacentHTML('afterbegin', row);
+            if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+
             // Update Chart
             sensorChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
             sensorChart.data.datasets[0].data.push(data.temp);

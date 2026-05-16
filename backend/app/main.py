@@ -144,7 +144,15 @@ async def manual_control(req: ControlRequest):
     
     # Sync UI
     await manager.broadcast_to_ui({"type": "state_update", "state": system_state})
-    return {"status": "success", "new_state": system_state}
+    
+    # Broadcast to Telegram
+    status_str = "ON" if req.status == 1 else "OFF"
+    if req.component == "mode":
+        status_str = system_state["mode"]
+    
+    send_telegram_alert(f"MANUAL OVERRIDE: {req.component.upper()} changed to {status_str}")
+
+    return {"status": "success", "state": system_state}
 
 @app.websocket("/ws/sensor")
 async def websocket_sensor(websocket: WebSocket):
@@ -166,8 +174,8 @@ async def websocket_sensor(websocket: WebSocket):
                 system_state["mist"] = 1 if hum < 40.0 else 0
                 system_state["heater"] = 1 if temp < 24.0 else 0
             
-            alert_msg = "High Temp" if temp > 35.0 else "Normal"
-            if temp > 35.0:
+            alert_msg = "High Temp" if temp > 30.0 else "Normal"
+            if temp > 30.0:
                 msg = f"High Temperature Detected: {temp}°C!"
                 send_alert(f"CRITICAL: {msg}")
                 send_telegram_alert(msg)
