@@ -115,7 +115,11 @@ Buka file `frontend/index.html` di browser Anda.
 
 ### 4. Setup Mikrokontroler (ESP32)
 1. Buka file `microcontroller/esp32/esp32.ino` di **Arduino IDE**.
-2. Instal library yang diperlukan: `DHT sensor library`, `WebSockets`, `ArduinoJson`.
+2. Instal library berikut melalui Library Manager atau unduh secara manual:
+   - [DHT sensor library oleh Adafruit](https://github.com/adafruit/DHT-sensor-library)
+   - [WebSockets oleh Links2004](https://github.com/Links2004/arduinoWebSockets)
+   - [ArduinoJson oleh bblanchon](https://github.com/bblanchon/ArduinoJson)
+   - [LiquidCrystal_I2C oleh johnrickman](https://github.com/johnrickman/LiquidCrystal_I2C)
 3. Sesuaikan variabel berikut:
    - `ssid`: Nama WiFi Anda.
    - `password`: Kata sandi WiFi Anda.

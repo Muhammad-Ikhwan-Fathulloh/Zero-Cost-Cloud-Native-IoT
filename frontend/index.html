@@ -35,9 +35,24 @@
                     <div class="sub-text">Live DHT22 Sensor</div>
                 </div>
                 <div class="card glass">
-                    <h3>LED Status</h3>
-                    <div class="value" id="led-val">OFF</div>
-                    <div class="sub-text">AI Decision Engine</div>
+                    <h3>Kipas (Fan)</h3>
+                    <div class="value" id="kipas-val">OFF</div>
+                    <div class="sub-text">AI Decision (Temp)</div>
+                </div>
+                <div class="card glass">
+                    <h3>Mist Maker</h3>
+                    <div class="value" id="mist-val">OFF</div>
+                    <div class="sub-text">Rule: Hum &lt; 40%</div>
+                </div>
+                <div class="card glass">
+                    <h3>Heater</h3>
+                    <div class="value" id="heater-val">OFF</div>
+                    <div class="sub-text">Rule: Temp &lt; 24°C</div>
+                </div>
+                <div class="card glass">
+                    <h3>Mode</h3>
+                    <div class="value" id="mode-val">AUTO</div>
+                    <div class="sub-text">System State</div>
                 </div>
             </section>
 
@@ -59,7 +74,10 @@
                                 <th>Timestamp</th>
                                 <th>Temp (°C)</th>
                                 <th>Hum (%)</th>
-                                <th>AI Action</th>
+                                <th>Kipas</th>
+                                <th>Mist Maker</th>
+                                <th>Heater</th>
+                                <th>Mode</th>
                             </tr>
                         </thead>
                         <tbody id="logs-body">
@@ -115,12 +133,32 @@
                 const tbody = document.getElementById('logs-body');
                 tbody.innerHTML = '';
 
+                if (data.length > 0) {
+                    const latest = data[0];
+                    document.getElementById('temp-val').innerText = `${latest.temp}°C`;
+                    document.getElementById('hum-val').innerText = `${latest.hum}%`;
+                    document.getElementById('kipas-val').innerText = latest.led_status || 'OFF';
+                    document.getElementById('mist-val').innerText = latest.mist_status || 'OFF';
+                    document.getElementById('heater-val').innerText = latest.heater_status || 'OFF';
+                    document.getElementById('mode-val').innerText = latest.mode_status === 'ON' ? 'AUTO' : 'MANUAL';
+                    
+                    // Update Chart
+                    const sortedData = [...data].reverse().slice(-20);
+                    sensorChart.data.labels = sortedData.map(log => new Date(log.timestamp).toLocaleTimeString());
+                    sensorChart.data.datasets[0].data = sortedData.map(log => log.temp);
+                    sensorChart.data.datasets[1].data = sortedData.map(log => log.hum);
+                    sensorChart.update();
+                }
+
                 data.forEach(log => {
                     const row = `<tr>
                         <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
                         <td>${log.temp}</td>
                         <td>${log.hum}</td>
                         <td><span class="badge ${log.led_status}">${log.led_status}</span></td>
+                        <td><span class="badge ${log.mist_status || 'OFF'}">${log.mist_status || 'OFF'}</span></td>
+                        <td><span class="badge ${log.heater_status || 'OFF'}">${log.heater_status || 'OFF'}</span></td>
+                        <td><span class="badge ${log.mode_status || 'ON'}">${log.mode_status === 'ON' ? 'AUTO' : 'MANUAL'}</span></td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });

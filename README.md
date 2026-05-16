@@ -115,7 +115,11 @@ Open the `frontend/index.html` file in your browser.
 
 ### 4. Microcontroller Setup (ESP32)
 1. Open the `microcontroller/esp32/esp32.ino` file in **Arduino IDE**.
-2. Install the required libraries: `DHT sensor library`, `WebSockets`, `ArduinoJson`.
+2. Install the following required libraries via the Library Manager or download them manually:
+   - [DHT sensor library by Adafruit](https://github.com/adafruit/DHT-sensor-library)
+   - [WebSockets by Links2004](https://github.com/Links2004/arduinoWebSockets)
+   - [ArduinoJson by bblanchon](https://github.com/bblanchon/ArduinoJson)
+   - [LiquidCrystal_I2C by johnrickman](https://github.com/johnrickman/LiquidCrystal_I2C)
 3. Adjust the following variables:
    - `ssid`: Your WiFi name.
    - `password`: Your WiFi password.

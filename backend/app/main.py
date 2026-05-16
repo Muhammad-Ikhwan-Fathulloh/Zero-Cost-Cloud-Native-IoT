@@ -54,7 +54,10 @@ async def sqs_worker():
                     'timestamp': data.get('timestamp'),
                     'temp': data.get('temp'),
                     'hum': data.get('hum'),
-                    'led_status': data.get('led_status')
+                    'led_status': data.get('led_status'),
+                    'mist_status': data.get('mist_status', 'OFF'),
+                    'heater_status': data.get('heater_status', 'OFF'),
+                    'mode_status': data.get('mode_status', 'ON')
                 })
                 
                 # Delete message after processing
@@ -67,7 +70,7 @@ async def sqs_worker():
 
 @app.get("/", tags=["General"])
 async def root():
-    return {"message": "IoT AI Bridge v3 (Pro) is Online"}
+    return {"message": "IoT AI Bridge is Online"}
 
 @app.get("/logs", tags=["Monitoring"])
 async def get_logs():
@@ -94,9 +97,18 @@ async def websocket_endpoint(websocket: WebSocket):
             log_metric('Temperature', temp, 'None')
             log_metric('Humidity', hum, 'None')
 
-            # 2. AI Inference (Real-time)
+            # 2. AI Inference (Real-time) for Fan
             led_decision = predict_condition(temp, hum)
             led_status_str = "ON" if led_decision else "OFF"
+
+            # Threshold logic for other components
+            mist_decision = 1 if hum < 40.0 else 0
+            heater_decision = 1 if temp < 24.0 else 0
+            mode_decision = 1  # Default Auto
+
+            mist_status_str = "ON" if mist_decision else "OFF"
+            heater_status_str = "ON" if heater_decision else "OFF"
+            mode_status_str = "ON" if mode_decision else "OFF"
 
             # 3. SNS Alert
             if temp > 35.0:
@@ -108,14 +120,20 @@ async def websocket_endpoint(websocket: WebSocket):
                 'timestamp': datetime.datetime.now().isoformat(),
                 'temp': temp,
                 'hum': hum,
-                'led_status': led_status_str
+                'led_status': led_status_str,
+                'mist_status': mist_status_str,
+                'heater_status': heater_status_str,
+                'mode_status': mode_status_str
             }
             push_to_queue(json.dumps(sensor_payload))
 
             # 5. Send Real-time Command back to ESP32
             await websocket.send_json({
                 "led_control": 1 if led_decision else 0,
-                "msg": "AI Decision Processed (SQS & CW Logged)",
+                "control_2": mist_decision,
+                "control_3": heater_decision,
+                "control_4": mode_decision,
+                "msg": "AI & Rules Processed (SQS & CW Logged)",
                 "alert": "High Temp" if temp > 35.0 else "Normal"
             })
     except WebSocketDisconnect:
