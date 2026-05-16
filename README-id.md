@@ -79,7 +79,11 @@ iot-ai-localstack/
 ## 🚀 Panduan Instalasi & Penggunaan
 
 ### 1. Persiapan Infrastruktur (LocalStack)
-Pastikan Docker berjalan di sistem Anda, lalu mulai LocalStack menggunakan Docker atau LocalStack CLI:
+Pastikan Docker berjalan di sistem Anda. Anda juga memerlukan LocalStack CLI yang dapat diinstal via Python:
+```bash
+pip install localstack
+```
+Setelah itu, mulai LocalStack:
 ```bash
 localstack start -d
 ```
