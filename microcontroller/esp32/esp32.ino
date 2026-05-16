@@ -24,7 +24,7 @@
 // Configuration
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
-const char* server_ip = "192.168.1.15"; // Ubah ke IP Laptop/Server Anda
+const char* server_ip = "192.168.8.129"; // Alamat IP Laptop Anda
 const int server_port = 8000;
 
 #define DHTPIN 25

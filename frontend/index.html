@@ -56,6 +56,16 @@
                 </div>
             </section>
 
+            <section class="controls glass">
+                <h3>Manual Override Panel</h3>
+                <div class="control-grid">
+                    <button id="btn-kipas" class="btn ctrl-btn">Toggle Kipas</button>
+                    <button id="btn-mist" class="btn ctrl-btn">Toggle Mist Maker</button>
+                    <button id="btn-heater" class="btn ctrl-btn">Toggle Heater</button>
+                    <button id="btn-mode" class="btn ctrl-btn secondary">Switch Mode</button>
+                </div>
+            </section>
+
             <section class="charts glass">
                 <h3>Real-time History</h3>
                 <canvas id="sensorChart"></canvas>
@@ -95,6 +105,7 @@
 
     <script>
         const API_BASE = "http://localhost:8000";
+        let currentState = { mode: "AUTO", kipas: 0, mist: 0, heater: 0 };
 
         // Initialize Chart
         const ctx = document.getElementById('sensorChart').getContext('2d');
@@ -126,29 +137,103 @@
             }
         });
 
+        // WebSocket Setup
+        const ws = new WebSocket(`ws://${location.hostname}:8000/ws/ui`);
+        
+        ws.onopen = () => {
+            document.getElementById('connection-status').innerText = "Real-time Online";
+            document.getElementById('connection-status').className = "online";
+        };
+
+        ws.onclose = () => {
+            document.getElementById('connection-status').innerText = "Offline";
+            document.getElementById('connection-status').className = "offline";
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "sensor_update") {
+                updateMetrics(msg.data);
+            } else if (msg.type === "state_update") {
+                syncState(msg.state);
+            }
+        };
+
+        function updateMetrics(data) {
+            document.getElementById('temp-val').innerText = `${data.temp}°C`;
+            document.getElementById('hum-val').innerText = `${data.hum}%`;
+            document.getElementById('kipas-val').innerText = data.led_status;
+            document.getElementById('mist-val').innerText = data.mist_status;
+            document.getElementById('heater-val').innerText = data.heater_status;
+            document.getElementById('mode-val').innerText = data.mode_status;
+
+            // Sync button styles with real-time data
+            updateBtnStyle('btn-kipas', data.led_status === "ON");
+            updateBtnStyle('btn-mist', data.mist_status === "ON");
+            updateBtnStyle('btn-heater', data.heater_status === "ON");
+            
+            // Sync current state to prevent toggle mismatch
+            currentState.kipas = data.led_status === "ON" ? 1 : 0;
+            currentState.mist = data.mist_status === "ON" ? 1 : 0;
+            currentState.heater = data.heater_status === "ON" ? 1 : 0;
+            currentState.mode = data.mode_status;
+
+            // Update Chart
+            sensorChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
+            sensorChart.data.datasets[0].data.push(data.temp);
+            sensorChart.data.datasets[1].data.push(data.hum);
+            if (sensorChart.data.labels.length > 20) {
+                sensorChart.data.labels.shift();
+                sensorChart.data.datasets[0].data.shift();
+                sensorChart.data.datasets[1].data.shift();
+            }
+            sensorChart.update();
+        }
+
+        function syncState(state) {
+            currentState = state;
+            document.getElementById('mode-val').innerText = state.mode;
+            document.getElementById('kipas-val').innerText = state.kipas ? "ON" : "OFF";
+            document.getElementById('mist-val').innerText = state.mist ? "ON" : "OFF";
+            document.getElementById('heater-val').innerText = state.heater ? "ON" : "OFF";
+            
+            // Update button styles
+            updateBtnStyle('btn-kipas', state.kipas);
+            updateBtnStyle('btn-mist', state.mist);
+            updateBtnStyle('btn-heater', state.heater);
+            
+            const modeBtn = document.getElementById('btn-mode');
+            modeBtn.innerText = `Mode: ${state.mode}`;
+            modeBtn.className = `btn ctrl-btn ${state.mode === 'AUTO' ? 'secondary' : 'btn-on'}`;
+        }
+
+        function updateBtnStyle(id, isOn) {
+            const btn = document.getElementById(id);
+            btn.className = `btn ctrl-btn ${isOn ? 'btn-on' : 'btn-off'}`;
+        }
+
+        async function sendControl(component, status) {
+            try {
+                await fetch(`${API_BASE}/control`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ component, status })
+                });
+            } catch (e) { console.error("Control failed", e); }
+        }
+
+        // Event Listeners
+        document.getElementById('btn-kipas').onclick = () => sendControl('kipas', currentState.kipas ? 0 : 1);
+        document.getElementById('btn-mist').onclick = () => sendControl('mist', currentState.mist ? 0 : 1);
+        document.getElementById('btn-heater').onclick = () => sendControl('heater', currentState.heater ? 0 : 1);
+        document.getElementById('btn-mode').onclick = () => sendControl('mode', currentState.mode === "AUTO" ? 1 : 0);
+
         async function fetchLogs() {
             try {
                 const res = await fetch(`${API_BASE}/logs`);
                 const data = await res.json();
                 const tbody = document.getElementById('logs-body');
                 tbody.innerHTML = '';
-
-                if (data.length > 0) {
-                    const latest = data[0];
-                    document.getElementById('temp-val').innerText = `${latest.temp}°C`;
-                    document.getElementById('hum-val').innerText = `${latest.hum}%`;
-                    document.getElementById('kipas-val').innerText = latest.led_status || 'OFF';
-                    document.getElementById('mist-val').innerText = latest.mist_status || 'OFF';
-                    document.getElementById('heater-val').innerText = latest.heater_status || 'OFF';
-                    document.getElementById('mode-val').innerText = latest.mode_status === 'ON' ? 'AUTO' : 'MANUAL';
-                    
-                    // Update Chart
-                    const sortedData = [...data].reverse().slice(-20);
-                    sensorChart.data.labels = sortedData.map(log => new Date(log.timestamp).toLocaleTimeString());
-                    sensorChart.data.datasets[0].data = sortedData.map(log => log.temp);
-                    sensorChart.data.datasets[1].data = sortedData.map(log => log.hum);
-                    sensorChart.update();
-                }
 
                 data.forEach(log => {
                     const row = `<tr>
@@ -158,7 +243,7 @@
                         <td><span class="badge ${log.led_status}">${log.led_status}</span></td>
                         <td><span class="badge ${log.mist_status || 'OFF'}">${log.mist_status || 'OFF'}</span></td>
                         <td><span class="badge ${log.heater_status || 'OFF'}">${log.heater_status || 'OFF'}</span></td>
-                        <td><span class="badge ${log.mode_status || 'ON'}">${log.mode_status === 'ON' ? 'AUTO' : 'MANUAL'}</span></td>
+                        <td><span class="badge ${log.mode_status || 'ON'}">${log.mode_status}</span></td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });
@@ -183,21 +268,6 @@
                 btn.innerText = "Retrain AI (S3)";
             }
         };
-
-        // Poll for updates (Simulation of live data since we can't easily WS from here to multiple clients without complex broadcast)
-        // But we can check status
-        setInterval(async () => {
-            try {
-                const res = await fetch(`${API_BASE}/`);
-                if (res.ok) {
-                    document.getElementById('connection-status').innerText = "Online";
-                    document.getElementById('connection-status').className = "online";
-                }
-            } catch (e) {
-                document.getElementById('connection-status').innerText = "Offline";
-                document.getElementById('connection-status').className = "offline";
-            }
-        }, 5000);
 
         fetchLogs();
     </script>
