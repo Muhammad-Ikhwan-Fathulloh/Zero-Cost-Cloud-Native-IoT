@@ -122,7 +122,10 @@ If you are using **LocalStack Community Edition**, you do not need real AWS cred
 #### 🔹 Telegram Bot (Alert Notifications)
 To receive real-time critical alerts on your mobile device:
 1. **Get Bot Token**: Search for [@BotFather](https://t.me/botfather) on Telegram. Type `/newbot` and follow the steps to receive your `TELEGRAM_BOT_TOKEN`.
-2. **Get Chat ID**: Search for [@userinfobot](https://t.me/userinfobot) on Telegram and send any message. It will return your `Id` which you should use as `TELEGRAM_CHAT_ID`.
+2. **Get Chat ID**:
+   - Search for [@userinfobot](https://t.me/userinfobot) or [@getmyid_bot](https://t.me/getmyid_bot) on Telegram.
+   - Click **Start**.
+   - The bot will reply with your **User ID** (e.g., `123456789`). This numeric value is your `TELEGRAM_CHAT_ID`.
 3. Add these keys to your `backend/.env` file.
 
 ### 4. Access Dashboard (Frontend)

@@ -122,7 +122,10 @@ Jika Anda menggunakan **LocalStack Community Edition**, Anda tidak memerlukan kr
 #### 🔹 Telegram Bot (Notifikasi Peringatan)
 Untuk menerima peringatan kritis secara real-time di HP Anda:
 1. **Dapatkan Bot Token**: Chat dengan [@BotFather](https://t.me/botfather) di Telegram. Ketik `/newbot` dan ikuti langkah-langkahnya untuk mendapatkan `TELEGRAM_BOT_TOKEN`.
-2. **Dapatkan Chat ID**: Chat dengan [@userinfobot](https://t.me/userinfobot) di Telegram dan kirim pesan apa saja. Bot akan membalas dengan `Id` Anda (gunakan ini sebagai `TELEGRAM_CHAT_ID`).
+2. **Dapatkan Chat ID**:
+   - Cari bot [@userinfobot](https://t.me/userinfobot) atau [@getmyid_bot](https://t.me/getmyid_bot) di Telegram.
+   - Klik **Start**.
+   - Bot akan membalas dengan **User ID** Anda (contoh: `123456789`). Angka numerik ini adalah `TELEGRAM_CHAT_ID` Anda.
 3. Masukkan kedua nilai tersebut ke file `backend/.env`.
 
 ### 4. Mengakses Dashboard (Frontend)
