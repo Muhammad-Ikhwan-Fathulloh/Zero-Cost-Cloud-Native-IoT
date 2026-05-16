@@ -1,5 +1,7 @@
 # Zero-Cost Cloud Native: Architecting Hybrid IoT & AI Pipelines with LocalStack
 
+[English](README.md) | [Bahasa Indonesia](README-id.md)
+
 An IoT monitoring project (DHT22) integrated with Machine Learning and AWS simulation using **LocalStack**. The entire infrastructure is designed to run locally without any cloud costs (Zero-Cost).
 
 ## 🏗️ Architecture Diagram
@@ -117,11 +119,26 @@ Open the `frontend/index.html` file in your browser.
 4. Upload the code to your ESP32 board.
 
 ## 🛠️ AWS Services Detail
-- **DynamoDB**: Table `IoT_Sensor_Data` (Partition Key: `id`).
-- **S3**: Bucket `iot-ai-models` (Storage for `.pkl` models).
-- **SNS**: Topic `IoT_Alerts` (Trigger for temperature alerts).
-- **SQS**: Queue `IoT_Sensor_Queue` (Async data processing).
-- **CloudWatch**: Namespace `IoT/DHT22` (Custom sensor metrics).
+
+1. **DynamoDB** (NoSQL Database)
+   - **Table Name**: `IoT_Sensor_Data` (Partition Key: `id`)
+   - **Role**: Serves as the primary storage for all sensor data logs (temperature and humidity) sent by the ESP32. The NoSQL schema allows for flexible and efficient time-series data storage.
+
+2. **S3** (Simple Storage Service)
+   - **Bucket Name**: `iot-ai-models`
+   - **Role**: Used as object storage for Machine Learning model files (`.pkl`). This model is loaded by the FastAPI backend at startup to perform environmental condition inference based on sensor data.
+
+3. **SNS** (Simple Notification Service)
+   - **Topic Name**: `IoT_Alerts`
+   - **Role**: A pub/sub service that handles the notification system. If the AI detects abnormal conditions or the temperature exceeds a threshold, the system publishes an alert to this topic, which can be forwarded as an email or SMS.
+
+4. **SQS** (Simple Queue Service)
+   - **Queue Name**: `IoT_Sensor_Queue`
+   - **Role**: Acts as a message queue to decouple the data ingestion process from storage and notification processes. Data enters SQS first, then is processed asynchronously by the *Background Worker* to keep the API responsive.
+
+5. **CloudWatch** (Monitoring & Metrics)
+   - **Namespace**: `IoT/DHT22`
+   - **Role**: Collects and monitors custom metrics from the sensors. This is useful for performance tracking, data trend analysis, and monitoring the health of the IoT infrastructure system.
 
 ---
 Developed with ❤️ by [Muhammad Ikhwan Fathulloh](https://github.com/Muhammad-Ikhwan-Fathulloh)
