@@ -104,7 +104,8 @@ async def sqs_worker():
                     'led_status': data.get('led_status'),
                     'mist_status': data.get('mist_status', 'OFF'),
                     'heater_status': data.get('heater_status', 'OFF'),
-                    'mode_status': data.get('mode_status', 'ON')
+                    'mode_status': data.get('mode_status', 'ON'),
+                    'temp_threshold': Decimal(str(data.get('temp_threshold', 30.0)))
                 })
                 sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=msg['ReceiptHandle'])
         except Exception as e:
@@ -162,9 +163,12 @@ async def manual_control(req: ControlRequest):
     await manager.broadcast_to_ui({"type": "state_update", "state": system_state})
     
     # Broadcast to Telegram
-    status_str = "ON" if req.status == 1 else "OFF"
-    if req.component == "mode":
+    if req.component == "threshold":
+        status_str = f"{req.status}°C"
+    elif req.component == "mode":
         status_str = system_state["mode"]
+    else:
+        status_str = "ON" if req.status == 1 else "OFF"
     
     send_telegram_alert(f"MANUAL OVERRIDE: {req.component.upper()} changed to {status_str}")
 
@@ -208,7 +212,8 @@ async def websocket_sensor(websocket: WebSocket):
                 'led_status': "ON" if system_state["kipas"] else "OFF",
                 'mist_status': "ON" if system_state["mist"] else "OFF",
                 'heater_status': "ON" if system_state["heater"] else "OFF",
-                'mode_status': system_state["mode"]
+                'mode_status': system_state["mode"],
+                'temp_threshold': float(system_state["temp_threshold"])
             }
             push_to_queue(json.dumps(payload))
 
