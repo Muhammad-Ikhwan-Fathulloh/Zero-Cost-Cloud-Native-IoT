@@ -229,11 +229,23 @@ async def websocket_ui(websocket: WebSocket):
     try:
         await websocket.send_json({"type": "state_update", "state": system_state})
         while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
+            try:
+                # Wait for any message from client (ping/pong or commands)
+                # Use a timeout so the connection doesn't hang forever
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=60)
+            except asyncio.TimeoutError:
+                # No message received, send a ping to keep alive
+                try:
+                    await websocket.send_json({"type": "ping"})
+                except:
+                    break
+            except WebSocketDisconnect:
+                break
+            except Exception:
+                break
+    finally:
         manager.disconnect(websocket)
-    except Exception as e:
-        manager.disconnect(websocket)
+
 
 @app.post("/train")
 async def run_model_training():

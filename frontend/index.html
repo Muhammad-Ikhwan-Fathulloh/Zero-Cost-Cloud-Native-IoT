@@ -36,50 +36,48 @@
             </div>
         </header>
 
+        <!-- Alert Banner -->
+        <div id="alertBanner" class="alert-banner">
+            <div class="alert-banner-content">
+                <i data-lucide="alert-triangle" class="i-mid"></i>
+                <span id="alertBannerMsg"></span>
+                <button id="closeAlertBanner" class="close-btn">
+                    <i data-lucide="x" class="i-small"></i>
+                </button>
+            </div>
+        </div>
+
         <div class="dashboard-grid">
             <!-- Sensor Cards -->
-            <div class="card">
+            <div class="card sensor-card">
                 <div class="card-title"><i data-lucide="thermometer" class="i-small"></i> TEMPERATURE</div>
                 <div class="card-value"><span id="tempValue">--</span><span class="unit">°C</span></div>
             </div>
-            <div class="card">
+            <div class="card sensor-card">
                 <div class="card-title"><i data-lucide="droplets" class="i-small"></i> HUMIDITY</div>
                 <div class="card-value"><span id="humValue">--</span><span class="unit">%</span></div>
             </div>
 
-            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card status-card">
                 <div class="card-title"><i data-lucide="shield-check" class="i-small"></i> ANOMALY STATUS</div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span id="anomalyDisplay"
-                        style="font-weight: 700; font-size: 1.25rem; color: var(--success);">NORMAL</span>
-                    <div id="anomalyIndicator" class="status-dot online"></div>
+                <div class="status-content">
+                    <span id="anomalyDisplay" class="status-text normal">NORMAL</span>
+                    <div id="anomalyIndicator" class="status-dot-large online"></div>
                 </div>
-                <p id="anomalyLastCheck" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.5rem;">Last
-                    checked: Just now</p>
+                <p id="anomalyLastCheck" class="last-check">Last checked: Just now</p>
             </div>
 
             <!-- Mode & Alerts -->
-            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card mode-card">
                 <div class="card-title"><i data-lucide="bot" class="i-small"></i> SYSTEM MODE</div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span id="modeDisplay" style="font-weight: 700; font-size: 1.25rem;">AUTO</span>
-                    <button id="toggleMode" class="btn-train" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Switch
-                        to Manual</button>
+                <div class="mode-content">
+                    <span id="modeDisplay" class="mode-text">AUTO</span>
+                    <button id="toggleMode" class="btn-secondary">Switch to Manual</button>
                 </div>
-                <div id="alertBox"
-                    style="margin-top: 1rem; padding: 0.5rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); font-size: 0.75rem; display: none;">
-                    <i data-lucide="alert-triangle" class="i-small"></i> <span id="alertMsg"></span>
-                </div>
-            </div>
-
-            <!-- Chart -->
-            <div class="card chart-container">
-                <div class="card-title"><i data-lucide="line-chart" class="i-small"></i> SENSOR TRENDS</div>
-                <canvas id="sensorChart"></canvas>
             </div>
 
             <!-- Controls -->
-            <div class="card">
+            <div class="card controls-card">
                 <div class="card-title"><i data-lucide="gamepad-2" class="i-small"></i> MANUAL OVERRIDE</div>
                 <div class="controls">
                     <div class="switch-group">
@@ -106,45 +104,61 @@
                 </div>
             </div>
 
+            <!-- Alert History -->
+            <div class="card alerts-card">
+                <div class="card-title"><i data-lucide="bell" class="i-small"></i> ALERT HISTORY</div>
+                <div id="alertHistory" class="alert-history">
+                    <p class="no-alerts">No alerts yet</p>
+                </div>
+            </div>
+
             <!-- Settings -->
-            <div class="card">
+            <div class="card settings-card span-2">
                 <div class="card-title"><i data-lucide="settings" class="i-small"></i> CONFIGURATION</div>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--text-muted);">Temp Threshold: <span
-                                id="thresholdVal">30</span>°C</label>
-                        <input type="range" id="thresholdSlider" min="20" max="45" step="0.5" value="30"
-                            style="width: 100%; margin-top: 0.5rem;">
+                <div class="settings-content">
+                    <div class="threshold-section">
+                        <label>Temp Threshold: <span id="thresholdVal">30</span>°C</label>
+                        <input type="range" id="thresholdSlider" min="20" max="45" step="0.5" value="30">
                     </div>
                     <button id="trainBtn" class="btn-train">Train AI Models</button>
-                    <div id="alarmInfo" style="font-size: 0.75rem; color: var(--text-muted);">
+                    <div class="alarm-info">
+                        <i data-lucide="cloud" class="i-small"></i>
                         CloudWatch Alarm: <span id="alarmStatus">---</span>
                     </div>
                 </div>
             </div>
-            <!-- Historical Analysis -->
-            <div class="card" style="grid-column: span 2;">
-                <div class="card-title" style="display: flex; justify-content: space-between;">
-                    <span class="icon-wrapper"><i data-lucide="bar-chart-3" class="i-small"></i> HISTORICAL PREDICTION
-                        ANALYSIS</span>
-                    <button id="refreshHistBtn" class="btn-train"
-                        style="padding: 0.25rem 0.75rem; font-size: 0.7rem;">Run Batch Analysis</button>
+
+            <!-- Chart -->
+            <div class="card chart-container span-2">
+                <div class="card-title"><i data-lucide="line-chart" class="i-small"></i> SENSOR TRENDS</div>
+                <div class="chart-wrapper">
+                    <canvas id="sensorChart"></canvas>
                 </div>
-                <div style="margin-top: 1rem; overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+            </div>
+
+            <!-- Historical Analysis (span 2) -->
+            <div class="card historical-card span-2">
+                <div class="card-title" style="display: flex; justify-content: space-between;">
+                    <span class="icon-wrapper"><i data-lucide="bar-chart-3" class="i-small"></i> HISTORICAL PREDICTION ANALYSIS</span>
+                    <button id="refreshHistBtn" class="btn-secondary" style="padding: 0.35rem 0.9rem; font-size: 0.75rem;">
+                        <i data-lucide="refresh-cw" class="i-small" id="refreshIcon" style="display: inline-block; margin-right: 0.25rem;"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="historical-table-wrapper">
+                    <table class="historical-table">
                         <thead>
-                            <tr style="text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-                                <th style="padding: 0.5rem;">Time</th>
-                                <th style="padding: 0.5rem;">Temp</th>
-                                <th style="padding: 0.5rem;">Hum</th>
-                                <th style="padding: 0.5rem;">AI Prediction</th>
-                                <th style="padding: 0.5rem;">Anomaly</th>
+                            <tr>
+                                <th>Time</th>
+                                <th>Temp</th>
+                                <th>Hum</th>
+                                <th>AI Prediction</th>
+                                <th>Anomaly</th>
                             </tr>
                         </thead>
                         <tbody id="histTableBody">
                             <tr>
-                                <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">No
-                                    historical analysis yet. Click 'Run Batch Analysis'.</td>
+                                <td colspan="5" class="no-data">Loading...</td>
                             </tr>
                         </tbody>
                     </table>

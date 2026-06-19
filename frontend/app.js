@@ -1,6 +1,7 @@
 let socket;
 let sensorChart;
 const maxDataPoints = 20;
+let alertHistory = [];
 
 const serverIP = window.location.hostname || "localhost";
 const wsUrl = `ws://${serverIP}:8000/ws/ui`;
@@ -77,22 +78,34 @@ function initChart() {
 }
 
 // WebSocket Connection
+let wsReconnectTimer = null;
+
 function connectWS() {
+    if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
         document.getElementById('statusDot').classList.add('online');
         document.getElementById('statusText').innerText = 'Connected';
+        console.log('[WS] Connected');
     };
 
     socket.onclose = () => {
         document.getElementById('statusDot').classList.remove('online');
-        document.getElementById('statusText').innerText = 'Disconnected. Retrying...';
-        setTimeout(connectWS, 3000);
+        document.getElementById('statusText').innerText = 'Reconnecting...';
+        console.log('[WS] Disconnected, retrying in 3s...');
+        wsReconnectTimer = setTimeout(connectWS, 3000);
+    };
+
+    socket.onerror = () => {
+        console.log('[WS] Error occurred');
+        socket.close();
     };
 
     socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
+        if (msg.type === 'ping') return; // Ignore server pings
         if (msg.type === 'state_update') {
             updateUIState(msg.state);
         } else if (msg.type === 'sensor_update') {
@@ -100,6 +113,7 @@ function connectWS() {
             updateAnomalyUI(msg.data.anomaly);
         } else if (msg.type === 'sys_alert') {
             showAlert(msg.message);
+            addAlertToHistory(msg.message);
         }
     };
 }
@@ -110,11 +124,16 @@ function updateAnomalyUI(status) {
     const lastCheck = document.getElementById('anomalyLastCheck');
 
     display.innerText = status === 'YES' ? 'ANOMALY' : 'NORMAL';
-    display.style.color = status === 'YES' ? 'var(--danger)' : 'var(--success)';
+    display.classList.remove('normal', 'anomaly');
+    display.classList.add(status === 'YES' ? 'anomaly' : 'normal');
 
-    indicator.className = 'status-dot ' + (status === 'YES' ? '' : 'online');
-    if (status === 'YES') indicator.style.background = 'var(--danger)';
-    else indicator.style.background = 'var(--success)';
+    indicator.classList.remove('online');
+    if (status === 'YES') {
+        indicator.style.background = 'var(--danger)';
+        indicator.style.boxShadow = '0 0 10px var(--danger)';
+    } else {
+        indicator.classList.add('online');
+    }
 
     lastCheck.innerText = `Last checked: ${new Date().toLocaleTimeString()}`;
 }
@@ -163,11 +182,66 @@ async function fetchAlarmStatus() {
 }
 
 function showAlert(msg) {
-    const alertBox = document.getElementById('alertBox');
-    const alertMsg = document.getElementById('alertMsg');
+    const alertBanner = document.getElementById('alertBanner');
+    const alertMsg = document.getElementById('alertBannerMsg');
     alertMsg.innerText = msg;
-    alertBox.style.display = 'block';
-    setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
+    alertBanner.classList.add('show');
+    
+    // Auto hide after 8 seconds
+    setTimeout(() => {
+        alertBanner.classList.remove('show');
+    }, 8000);
+}
+
+// Close alert banner
+document.getElementById('closeAlertBanner').onclick = () => {
+    document.getElementById('alertBanner').classList.remove('show');
+};
+
+// Alert History
+function addAlertToHistory(msg) {
+    const now = new Date();
+    const time = now.toLocaleTimeString();
+    
+    const alertItem = {
+        message: msg,
+        time: time,
+        id: Date.now()
+    };
+    
+    alertHistory.unshift(alertItem);
+    
+    // Keep only last 20 alerts
+    if (alertHistory.length > 20) {
+        alertHistory.pop();
+    }
+    
+    renderAlertHistory();
+}
+
+function renderAlertHistory() {
+    const container = document.getElementById('alertHistory');
+    
+    if (alertHistory.length === 0) {
+        container.innerHTML = '<p class="no-alerts">No alerts yet</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    alertHistory.forEach(alert => {
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.innerHTML = `
+            <i data-lucide="alert-triangle" class="i-small" style="color: var(--danger); flex-shrink: 0;"></i>
+            <div>
+                <div>${alert.message}</div>
+                <div class="alert-time">${alert.time}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    
+    lucide.createIcons();
 }
 
 // Control Events
@@ -208,36 +282,73 @@ document.getElementById('trainBtn').onclick = async () => {
     btn.disabled = false;
 };
 
-document.getElementById('refreshHistBtn').onclick = async () => {
+async function loadHistoricalData() {
     const btn = document.getElementById('refreshHistBtn');
-    btn.innerText = 'Analyzing...';
+    const refreshIcon = document.getElementById('refreshIcon');
+    const tbody = document.getElementById('histTableBody');
+    
     btn.disabled = true;
+    refreshIcon.style.animation = 'spin 1s linear infinite';
+    tbody.style.opacity = '0.5';
+    tbody.style.transition = 'opacity 0.2s ease';
+    
     try {
         const res = await fetch(`${apiUrl}/predict/historical`);
         const data = await res.json();
-        const tbody = document.getElementById('histTableBody');
         tbody.innerHTML = '';
 
-        data.forEach(item => {
-            const row = document.createElement('tr');
-            row.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
-            const time = new Date(item.timestamp).toLocaleString();
-            row.innerHTML = `
-                <td style="padding: 0.5rem;">${time}</td>
-                <td style="padding: 0.5rem;">${item.temp.toFixed(1)}°C</td>
-                <td style="padding: 0.5rem;">${item.hum.toFixed(1)}%</td>
-                <td style="padding: 0.5rem; color: ${item.prediction === 'COOLING' ? 'var(--primary)' : 'var(--text)'}">${item.prediction}</td>
-                <td style="padding: 0.5rem; color: ${item.anomaly === 'YES' ? 'var(--danger)' : 'var(--success)'}">${item.anomaly}</td>
-            `;
-            tbody.appendChild(row);
-        });
-    } catch (e) { alert('Analysis failed'); }
-    btn.innerText = 'Run Batch Analysis';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="no-data">No historical data yet</td></tr>';
+        } else {
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition = 'all 0.3s ease';
+                row.style.transitionDelay = `${index * 0.02}s`;
+                
+                const time = new Date(item.timestamp).toLocaleString();
+                row.innerHTML = `
+                    <td>${time}</td>
+                    <td>${item.temp.toFixed(1)}°C</td>
+                    <td>${item.hum.toFixed(1)}%</td>
+                    <td style="color: ${item.prediction === 'COOLING' ? 'var(--primary)' : 'var(--text)'}">${item.prediction}</td>
+                    <td style="color: ${item.anomaly === 'YES' ? 'var(--danger)' : 'var(--success)'}">${item.anomaly}</td>
+                `;
+                tbody.appendChild(row);
+                
+                // Trigger animation
+                requestAnimationFrame(() => {
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                });
+            });
+        }
+    } catch (e) { 
+        console.error('Analysis failed', e);
+    }
+    
     btn.disabled = false;
-};
+    refreshIcon.style.animation = 'none';
+    tbody.style.opacity = '1';
+}
+
+document.getElementById('refreshHistBtn').onclick = loadHistoricalData;
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
 
 // Start
 initChart();
 connectWS();
 fetchAlarmStatus();
+loadHistoricalData(); // Auto load on startup
 setInterval(fetchAlarmStatus, 30000);
+setInterval(loadHistoricalData, 10000); // Auto refresh every 10 seconds

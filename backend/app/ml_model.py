@@ -44,7 +44,8 @@ def predict_condition(temp, hum):
         train_model()
     with open(MODEL_PATH, 'rb') as f:
         model = pickle.load(f)
-    return int(model.predict([[temp, hum]])[0])
+    X = pd.DataFrame([[temp, hum]], columns=['temp', 'hum'])
+    return int(model.predict(X)[0])
 
 def check_anomaly(temp, hum):
     """Check if the sensor reading is anomalous (-1 for anomaly, 1 for normal)"""
@@ -52,5 +53,6 @@ def check_anomaly(temp, hum):
         train_model()
     with open(ANOMALY_MODEL_PATH, 'rb') as f:
         model = pickle.load(f)
-    prediction = model.predict([[temp, hum]])
+    X = pd.DataFrame([[temp, hum]], columns=['temp', 'hum'])
+    prediction = model.predict(X)
     return int(prediction[0])
