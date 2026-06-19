@@ -1,146 +1,96 @@
-# Zero-Cost Cloud Native: Membangun Arsitektur Hybrid IoT & AI Pipeline dengan LocalStack
+# Zero-Cost Cloud Native: Arsitektur Pipeline IoT & AI Hybrid dengan LocalStack
 
 [English](README.md) | [Bahasa Indonesia](README-id.md)
 
-Proyek pemantauan IoT (DHT22) yang terintegrasi dengan Machine Learning dan simulasi AWS menggunakan [LocalStack](https://www.localstack.cloud/). Seluruh infrastruktur dirancang untuk berjalan secara lokal menggunakan pola [AWS](https://aws.amazon.com/) tanpa biaya cloud (Zero-Cost).
+Proyek monitoring Smart Room tingkat lanjut yang terintegrasi dengan **Unsupervised Anomaly Detection (Isolation Forest)** dan **Klasifikasi Kondisi Real-time (Random Forest)**. Dibangun dengan filosofi "Zero-Cost", menggunakan [LocalStack](https://www.localstack.cloud/) untuk mensimulasikan seluruh ekosistem AWS Cloud di mesin lokal Anda.
 
-## 🏗️ Diagram Arsitektur
+## 🏗️ Arsitektur Sistem
 
-![Arsitektur Sistem](./images/AIoT_Architecture.png)
+![System Architecture](./images/AIoT_Architecture.png)
+
+### Alur Logika
+```mermaid
+graph TD
+    ESP32[ESP32 / DHT22] -- WebSockets --> FastAPI[FastAPI Backend]
+    FastAPI -- SQS/SNS --> LocalStack[LocalStack / AWS Simulation]
+    LocalStack -- DynamoDB --> Logs[Sensor Logs]
+    FastAPI -- ML Models --> S3[S3 Bucket / Model Storage]
+    FastAPI -- Train/Predict --> ML[AI Engine / Isolation Forest]
+    FastAPI -- Real-time UI --> Dashboard[Glassmorphism Dashboard]
+```
 
 ## ✨ Fitur Utama
-![Layanan AWS yang Digunakan](./images/ServiceAWS.png)
 
-- **AWS DynamoDB**: Penyimpanan log sensor real-time dengan skema NoSQL.
-- **AWS S3**: Penyimpanan untuk model ML (`.pkl`) yang dilatih otomatis untuk siklus CI/CD.
-- **AWS SNS**: Sistem peringatan otomatis melalui Topik saat suhu melebihi batas.
-- **AWS SQS**: Arsitektur Event-Driven menggunakan antrean pesan untuk pemrosesan data asinkron.
-- **AWS CloudWatch**: Pemantauan metrik sensor (Suhu/Kelembapan) untuk analisis tren infrastruktur.
-- **AI Decision Engine**: Klasifikasi kondisi lingkungan menggunakan RandomForest untuk kontrol aktuator (LED).
-- **FreeRTOS Multitasking**: Eksekusi dual-core pada ESP32 untuk komunikasi WebSocket real-time tanpa lag dan pemrosesan sensor yang efisien.
-- **Monitoring Dashboard**: Visualisasi data real-time dengan UI Modern & Chart.js.
+![AWS Services Used](./images/ServiceAWS.png)
+
+### 🛡️ Deteksi Anomali Cerdas
+Menggunakan algoritma **Isolation Forest** untuk mengidentifikasi pola lingkungan yang tidak biasa (seperti lonjakan panas tiba-tiba atau kegagalan peralatan) tanpa memerlukan label data pelatihan.
+- Penandaan anomali secara real-time pada dashboard.
+- Notifikasi Telegram otomatis untuk anomali kritis.
+
+### 🤖 Pipeline AI Hybrid
+- **Real-time Inference**: RandomForest mengklasifikasikan kondisi ruangan (Normal vs Perlu Pendinginan) untuk mengontrol aktuator (Kipas, Mist, Heater).
+- **Local Inference (NocML)**: ESP32 menjalankan logika ML lokal untuk waktu respon sub-milidetik.
+- **Analisis Batch Historis**: Memindai log DynamoDB untuk melakukan analisis AI retrospektif pada data sensor masa lalu.
+
+### 🌓 UI/UX Premium
+- **Desain Glassmorphism**: Dashboard modern dengan lapisan transparan dan gradien yang cerah.
+- **Dark/Light Mode**: Tema yang dapat diganti dengan persistensi penyimpanan lokal.
+- **Lucide Icons**: Ikon vektor profesional menggantikan emoji tradisional.
+- **Chart.js**: Visualisasi dinamis real-time dari tren sensor.
+
+### ☁️ Simulasi AWS Tanpa Biaya (LocalStack)
+- **DynamoDB**: Penyimpanan NoSQL yang dapat diskalakan untuk riwayat sensor.
+- **S3**: Repositori terpusat untuk file model `.pkl`.
+- **SNS/SQS**: Arsitektur berbasis event untuk pengiriman peringatan yang andal.
+- **CloudWatch**: Pemantauan infrastruktur dan pelacakan metrik.
 
 ## 📂 Struktur Folder
 ```text
 iot-ai-localstack/
-├── backend/            # Logika FastAPI & AWS
-│   ├── app/            # Kode sumber inti (Business Logic)
-│   ├── data/           # Penyimpanan lokal untuk model ML
-│   └── requirements.txt
-├── microcontroller/    # Kode ESP32 (Arduino/C++)
+├── backend/            # FastAPI, Integrasi AWS & Model ML
+│   ├── app/            # Logika Bisnis & Pipeline AI
+│   ├── data/           # Cache Model Lokal
+│   └── .env.example    # Template Konfigurasi
+├── frontend/           # Dashboard (HTML/CSS/JS)
+├── microcontroller/    # Firmware ESP32 FreeRTOS
 │   └── esp32/
-├── frontend/           # Dashboard Pemantauan (HTML/CSS/JS)
 ├── images/             # Aset Dokumentasi
-├── .gitignore
-└── README.md
+└── .gitignore
 ```
 
-## 🚀 Panduan Instalasi & Penggunaan
+## 🚀 Memulai
 
-### 1. Persiapan Infrastruktur (LocalStack)
-Pastikan Docker berjalan di sistem Anda. Anda memerlukan LocalStack CLI:
+### 1. Prasyarat
+- Docker (untuk LocalStack)
+- Python 3.10+
+- Arduino IDE (untuk ESP32)
+
+### 2. Menjalankan Infrastruktur
 ```bash
 pip install localstack
-```
-Kemudian, jalankan LocalStack:
-```bash
 localstack start -d
 ```
-Untuk menghentikan LocalStack:
+
+### 3. Setup Backend
+1. Buat file `backend/.env` berdasarkan `.env.example`.
+2. Instal dependensi dan jalankan server:
 ```bash
-localstack stop
-```
-*Layanan yang akan diinisialisasi otomatis: S3, SQS, SNS, DynamoDB, CloudWatch.*
-
-### 2. Konfigurasi & Menjalankan Backend
-Masuk ke folder `backend`, siapkan lingkungan, dan jalankan server:
-
-**Windows:**
-```powershell
 cd backend
 python -m venv venv
-.\venv\Scripts\python.exe -m pip install -r requirements.txt
-.\venv\Scripts\uvicorn.exe app.main:app --reload --host 0.0.0.0
-```
-
-**Linux/macOS:**
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
+source venv/Scripts/activate # Windows
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
-### 3. Konfigurasi Lingkungan (.env)
-Buat file `.env` di dalam folder `backend` dan isi dengan nilai berikut:
+### 4. Deployment ESP32
+1. Buka `microcontroller/esp32/esp32.ino`.
+2. Atur `ssid`, `password`, dan `server_ip`.
+3. Unggah ke board (Pin: DHT25, Kipas 14, Mist 16, Heater 27, Mode 17).
 
-#### 🔹 LocalStack (AWS)
-Jika Anda menggunakan **LocalStack Community Edition**, gunakan nilai default berikut:
-- `AWS_ACCESS_KEY_ID=test`
-- `AWS_SECRET_ACCESS_KEY=test`
-- `AWS_REGION=us-east-1`
-- `LOCALSTACK_ENDPOINT=http://localhost:4566`
-
-#### 🔹 Telegram Bot (Notifikasi Peringatan)
-Untuk menerima peringatan kritis secara real-time di HP Anda:
-1. **Dapatkan Bot Token**: Chat dengan [@BotFather](https://t.me/botfather) di Telegram. Ketik `/newbot` untuk mendapatkan `TELEGRAM_BOT_TOKEN`.
-2. **Dapatkan Chat ID**:
-   - Cari bot [@userinfobot](https://t.me/userinfobot) atau [@getmyid_bot](https://t.me/getmyid_bot).
-   - Klik **Start**.
-   - Bot akan membalas dengan **User ID** Anda (contoh: `123456789`).
-3. Masukkan nilai tersebut ke file `backend/.env`.
-
-### 4. Mengakses Dashboard (Frontend)
+### 5. Akses Dashboard
 Buka file `frontend/index.html` di browser Anda.
-> **Tips:** Gunakan ekstensi "Live Server" di VS Code untuk pengalaman yang lebih baik.
-
-### 5. Setup Mikrokontroler (ESP32)
-1. Buka file `microcontroller/esp32/esp32.ino` di **Arduino IDE**.
-2. Instal library berikut melalui Library Manager:
-   - [DHT sensor library oleh Adafruit](https://github.com/adafruit/DHT-sensor-library)
-   - [WebSockets oleh Links2004](https://github.com/Links2004/arduinoWebSockets)
-   - [ArduinoJson oleh bblanchon](https://github.com/bblanchon/ArduinoJson)
-   - [LiquidCrystal_I2C oleh johnrickman](https://github.com/johnrickman/LiquidCrystal_I2C)
-   - [NocML oleh Nocturnailed-Community](https://github.com/Nocturnailed-Community/NocML)
-3. Sesuaikan variabel berikut:
-   - `ssid`: Nama WiFi Anda.
-   - `password`: Kata sandi WiFi Anda.
-   - `server_ip`: IP Laptop/PC Anda (cek dengan `ipconfig` di terminal).
-4. Upload kode ke board ESP32 Anda.
-
-## 🛠️ Detail Layanan AWS
-
-1. **DynamoDB** (Database NoSQL)
-   - **Nama Tabel**: `IoT_Sensor_Data`
-   - **Peran**: Penyimpanan utama untuk log data sensor.
-
-2. **S3** (Simple Storage Service)
-   - **Nama Bucket**: `iot-ai-models`
-   - **Peran**: Penyimpanan file model Machine Learning (`.pkl`).
-
-3. **SNS** (Simple Notification Service)
-   - **Nama Topik**: `IoT_Alerts`
-   - **Peran**: Menangani peringatan kritis melalui Telegram & LocalStack.
-
-4. **SQS** (Simple Queue Service)
-   - **Nama Antrean**: `IoT_Sensor_Queue`
-   - **Peran**: Antrean pemrosesan pesan asinkron.
-
-5. **CloudWatch** (Pemantauan & Metrik)
-   - **Namespace**: `IoT/DHT22`
-   - **Peran**: Melacak metrik suhu dan kelembapan untuk analisis tren infrastruktur.
-   - **Lihat Metrik**: Anda dapat melihat metrik yang dikumpulkan menggunakan AWS CLI:
-     ```bash
-     aws --endpoint-url=http://localhost:4566 cloudwatch list-metrics --namespace IoT/DHT22
-     ```
-
-## 🔗 Referensi & Komunitas
-- **LocalStack**: [Situs Resmi](https://www.localstack.cloud/)
-- **AWS**: [Situs Resmi](https://aws.amazon.com/)
-- **AWS User Group Bandung**: [Halaman Komunitas](https://bandung.awscommunity.id/)
 
 ---
-*Dikembangkan untuk **AWS User Group Bandung** - [bandung.awscommunity.id](https://bandung.awscommunity.id/)*
-
-Developed with ❤️ by [Muhammad Ikhwan Fathulloh](https://github.com/Muhammad-Ikhwan-Fathulloh)
+*Dikembangkan untuk **AWS User Group Bandung** untuk mendemonstrasikan desain Cloud-Native yang hemat biaya.*
+Dikembangkan dengan ❤️ oleh [Muhammad Ikhwan Fathulloh](https://github.com/Muhammad-Ikhwan-Fathulloh)

@@ -1,9 +1,9 @@
 fastapi
 uvicorn
+websockets
 boto3
 python-dotenv
 pandas
 scikit-learn
-joblib
-websockets
 requests
+pydantic

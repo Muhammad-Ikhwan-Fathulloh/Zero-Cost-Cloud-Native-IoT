@@ -1,6 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .ml_model import predict_condition, train_model
+from .ml_model import predict_condition, train_model, check_anomaly
 from .aws_service import (
     init_resources, dynamodb, send_alert, upload_model_to_s3, 
     push_to_queue, log_metric, sqs, QUEUE_NAME, send_telegram_alert,
@@ -15,9 +15,9 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 app = FastAPI(
-    title="Noc Lab IoT Bridge",
-    description="IoT Monitoring with S3, SNS, SQS, DynamoDB, & CloudWatch via LocalStack",
-    version="3.0.0"
+    title="Smart Room IoT Bridge",
+    description="IoT Monitoring via LocalStack",
+    version="1.0.0"
 )
 
 app.add_middleware(
@@ -77,13 +77,18 @@ class ControlRequest(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     init_resources()
-    create_cloudwatch_alarm()
+    create_cloudwatch_alarm(system_state["temp_threshold"])
     asyncio.create_task(sqs_worker())
 
 async def sqs_worker():
     print("SQS Worker Started...")
     while True:
         try:
+            queue_urls = sqs.list_queues().get('QueueUrls', [])
+            if not any(QUEUE_NAME in q for q in queue_urls):
+                await asyncio.sleep(5)
+                continue
+                
             queue_url = sqs.get_queue_url(QueueName=QUEUE_NAME)['QueueUrl']
             response = sqs.receive_message(
                 QueueUrl=queue_url,
@@ -113,11 +118,11 @@ async def sqs_worker():
         await asyncio.sleep(1)
 
 # --- Endpoints ---
-@app.get("/", tags=["General"])
+@app.get("/")
 async def root():
-    return {"message": "IoT AI Bridge is Online", "state": system_state}
+    return {"message": "Smart Room IoT Bridge is Online", "state": system_state}
 
-@app.get("/logs", tags=["Monitoring"])
+@app.get("/logs")
 async def get_logs():
     try:
         table = dynamodb.Table('IoT_Sensor_Data')
@@ -128,28 +133,25 @@ async def get_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/alarms", tags=["CloudWatch"])
+@app.get("/alarms")
 async def get_alarms():
-    """Get the current state of CloudWatch Alarms"""
     status = get_alarm_status()
     if status:
         return status
-    return {"name": "High_Temperature_Alarm", "state": "UNKNOWN", "reason": "Alarm not found"}
+    return {"name": "High_Temperature_Alarm", "state": "UNKNOWN", "reason": "No data yet"}
 
-@app.post("/control", tags=["Control"])
+@app.post("/control")
 async def manual_control(req: ControlRequest):
-    """Update system state and send to ESP32"""
     if req.component == "mode":
         system_state["mode"] = "MANUAL" if req.status == 1 else "AUTO"
     elif req.component == "threshold":
         system_state["temp_threshold"] = float(req.status)
-        # Update CloudWatch Alarm if needed
         create_cloudwatch_alarm(system_state["temp_threshold"])
     elif req.component in ["kipas", "mist", "heater"]:
-        system_state[req.component] = req.status
-        system_state["mode"] = "MANUAL" # Auto-switch to manual on override
+        system_state[req.component] = int(req.status)
+        system_state["mode"] = "MANUAL"
     
-    # Push update to ESP32 (threshold doesn't need to go to ESP32 for now)
+    # Sync ESP32
     if req.component != "threshold":
         await manager.send_to_esp32({
             "led_control": system_state["kipas"],
@@ -161,50 +163,39 @@ async def manual_control(req: ControlRequest):
     
     # Sync UI
     await manager.broadcast_to_ui({"type": "state_update", "state": system_state})
-    
-    # Broadcast to Telegram
-    if req.component == "threshold":
-        status_str = f"{req.status}°C"
-    elif req.component == "mode":
-        status_str = system_state["mode"]
-    else:
-        status_str = "ON" if req.status == 1 else "OFF"
-    
-    send_telegram_alert(f"MANUAL OVERRIDE: {req.component.upper()} changed to {status_str}")
-
+    send_telegram_alert(f"Manual Override: {req.component} updated.")
     return {"status": "success", "state": system_state}
 
 @app.websocket("/ws/sensor")
 async def websocket_sensor(websocket: WebSocket):
     await manager.connect(websocket, is_esp32=True)
-    print("ESP32 Connected via WebSocket")
     try:
         while True:
             data = await websocket.receive_json()
             temp = float(data.get("temp", 0))
             hum = float(data.get("hum", 0))
 
-            log_metric('Temperature', temp, 'None')
-            log_metric('Humidity', hum, 'None')
+            log_metric('Temperature', temp)
+            log_metric('Humidity', hum)
 
-            # Logic based on Mode
             if system_state["mode"] == "AUTO":
-                # AI & Rules
                 system_state["kipas"] = predict_condition(temp, hum)
                 system_state["mist"] = 1 if hum < 40.0 else 0
                 system_state["heater"] = 1 if temp < 24.0 else 0
             
-            alert_msg = "High Temp" if temp > system_state["temp_threshold"] else "Normal"
-            if temp > system_state["temp_threshold"]:
-                msg = f"High Temperature Detected: {temp}°C! (Limit: {system_state['temp_threshold']}°C)"
-                send_alert(f"CRITICAL: {msg}")
+            anomaly_status = check_anomaly(temp, hum)
+            
+            if anomaly_status == -1:
+                msg = f"ANOMALY DETECTED: Unusually values found (T:{temp}C, H:{hum}%)"
                 send_telegram_alert(msg)
-                await manager.broadcast_to_ui({
-                    "type": "sys_alert",
-                    "message": f"CRITICAL SNS & TELEGRAM ALERT: {msg}"
-                })
+                await manager.broadcast_to_ui({"type": "sys_alert", "message": msg})
 
-            # Record Payload
+            if temp > system_state["temp_threshold"]:
+                msg = f"Alert! High Temp: {temp}C"
+                send_alert(msg)
+                send_telegram_alert(msg)
+                await manager.broadcast_to_ui({"type": "sys_alert", "message": msg})
+
             payload = {
                 'id': str(uuid.uuid4()),
                 'timestamp': datetime.datetime.now().isoformat(),
@@ -213,50 +204,67 @@ async def websocket_sensor(websocket: WebSocket):
                 'mist_status': "ON" if system_state["mist"] else "OFF",
                 'heater_status': "ON" if system_state["heater"] else "OFF",
                 'mode_status': system_state["mode"],
-                'temp_threshold': float(system_state["temp_threshold"])
+                'temp_threshold': float(system_state["temp_threshold"]),
+                'anomaly': "YES" if anomaly_status == -1 else "NO"
             }
             push_to_queue(json.dumps(payload))
 
-            # Reply to ESP32
             await websocket.send_json({
-                "led_control": system_state["kipas"],
-                "control_2": system_state["mist"],
-                "control_3": system_state["heater"],
-                "control_4": 1 if system_state["mode"] == "AUTO" else 0,
-                "alert": alert_msg
+                "led_control": int(system_state["kipas"]),
+                "control_2": int(system_state["mist"]),
+                "control_3": int(system_state["heater"]),
+                "control_4": 1 if system_state["mode"] == "AUTO" else 0
             })
 
-            # Real-time Broadcast to Dashboard
-            await manager.broadcast_to_ui({
-                "type": "sensor_update",
-                "data": payload
-            })
-
+            await manager.broadcast_to_ui({"type": "sensor_update", "data": payload})
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        print("ESP32 Disconnected")
     except Exception as e:
-        print(f"WS Sensor Error: {e}")
+        print(f"WS Error: {e}")
         manager.disconnect(websocket)
 
 @app.websocket("/ws/ui")
 async def websocket_ui(websocket: WebSocket):
     await manager.connect(websocket, is_esp32=False)
     try:
-        # Send current state on connect
         await websocket.send_json({"type": "state_update", "state": system_state})
         while True:
-            await websocket.receive_text() # Keep connection alive
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
         manager.disconnect(websocket)
 
-@app.post("/train", tags=["Machine Learning"])
+@app.post("/train")
 async def run_model_training():
+    train_model()
+    upload_model_to_s3("data/dht22_model.pkl", "dht22_latest_model.pkl")
+    upload_model_to_s3("data/anomaly_model.pkl", "dht22_anomaly_model.pkl")
+    return {"status": "success", "message": "Models trained and uploaded"}
+
+@app.get("/predict/historical")
+async def predict_historical():
+    """Predict conditions for existing data in DynamoDB"""
     try:
-        train_model()
-        upload_model_to_s3("data/dht22_model.pkl", "dht22_latest_model.pkl")
-        return {"status": "success", "message": "Model trained and uploaded to S3"}
+        table = dynamodb.Table('IoT_Sensor_Data')
+        response = table.scan()
+        items = response.get('Items', [])
+        
+        results = []
+        for item in items:
+            t = float(item['temp'])
+            h = float(item['hum'])
+            prediction = predict_condition(t, h)
+            anomaly = check_anomaly(t, h)
+            results.append({
+                "timestamp": item['timestamp'],
+                "temp": t,
+                "hum": h,
+                "prediction": "COOLING" if prediction == 1 else "NORMAL",
+                "anomaly": "YES" if anomaly == -1 else "NO"
+            })
+        
+        results.sort(key=lambda x: x['timestamp'], reverse=True)
+        return results[:50]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

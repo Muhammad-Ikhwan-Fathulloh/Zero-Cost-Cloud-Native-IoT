@@ -4,359 +4,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT AI Dashboard - LocalStack</title>
+    <title>Smart Room | Cloud-Native IoT Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
     <div class="container">
         <header>
             <div class="logo">
-                <h1>IoT<span>AI</span> Bridge</h1>
-                <p>Advanced LocalStack Monitoring</p>
+                <div class="icon-wrapper">
+                    <i data-lucide="cpu" class="i-large" style="color: var(--primary);"></i>
+                    <div>
+                        <h1>Smart Room Monitoring</h1>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">Zero-Cost Cloud Native Architecture</p>
+                    </div>
+                </div>
             </div>
-            <div class="status">
-                <span id="connection-status" class="offline">Offline</span>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="themeToggle" title="Toggle Theme">
+                    <i data-lucide="sun" id="themeIcon"></i>
+                </button>
+                <div class="status-badge">
+                    <div id="statusDot" class="status-dot"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
             </div>
         </header>
-        <div id="alert-banner" class="alert-banner" style="display: none;"></div>
-        <main>
-            <section class="metrics">
-                <div class="card glass">
-                    <h3>Temperature</h3>
-                    <div class="value" id="temp-val">--°C</div>
-                    <div class="sub-text">Live DHT22 Sensor</div>
-                </div>
-                <div class="card glass">
-                    <h3>Humidity</h3>
-                    <div class="value" id="hum-val">--%</div>
-                    <div class="sub-text">Live DHT22 Sensor</div>
-                </div>
-                <div class="card glass">
-                    <h3>Kipas (Fan)</h3>
-                    <div class="value" id="kipas-val">OFF</div>
-                    <div class="sub-text">AI Decision (Temp)</div>
-                </div>
-                <div class="card glass">
-                    <h3>Mist Maker</h3>
-                    <div class="value" id="mist-val">OFF</div>
-                    <div class="sub-text">Rule: Hum &lt; 40%</div>
-                </div>
-                <div class="card glass">
-                    <h3>Heater</h3>
-                    <div class="value" id="heater-val">OFF</div>
-                    <div class="sub-text">Rule: Temp &lt; 24°C</div>
-                </div>
-                <div class="card glass">
-                    <h3>Mode</h3>
-                    <div class="value" id="mode-val">AUTO</div>
-                    <div class="sub-text">System State</div>
-                </div>
-                <div class="card glass alarm-card" id="alarm-card">
-                    <h3>CloudWatch Alarm</h3>
-                    <div class="value" id="alarm-val">OK</div>
-                    <div class="sub-text" id="alarm-reason">Monitoring...</div>
-                </div>
-            </section>
 
-            <section class="controls glass">
-                <h3>Manual Override Panel</h3>
-                <div class="control-grid">
-                    <div class="control-item">
-                        <label>Kipas</label>
-                        <label class="switch">
-                            <input type="checkbox" id="tg-kipas">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="control-item">
-                        <label>Mist Maker</label>
-                        <label class="switch">
-                            <input type="checkbox" id="tg-mist">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="control-item">
-                        <label>Heater</label>
-                        <label class="switch">
-                            <input type="checkbox" id="tg-heater">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="control-item">
-                        <label id="mode-label">Mode: AUTO</label>
-                        <label class="switch">
-                            <input type="checkbox" id="tg-mode">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="control-item">
-                        <label>Alert Threshold (°C)</label>
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-                            <input type="number" id="input-threshold" value="30.0" step="0.5" style="width: 70px; background: rgba(0,0,0,0.2); color: white; border: 1px solid var(--accent); border-radius: 8px; padding: 5px; text-align: center; font-size: 1.1rem;">
-                            <button class="btn" id="btn-save-threshold" style="font-size: 0.7rem; width: 100%;">Apply</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+        <div class="dashboard-grid">
+            <!-- Sensor Cards -->
+            <div class="card">
+                <div class="card-title"><i data-lucide="thermometer" class="i-small"></i> TEMPERATURE</div>
+                <div class="card-value"><span id="tempValue">--</span><span class="unit">°C</span></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><i data-lucide="droplets" class="i-small"></i> HUMIDITY</div>
+                <div class="card-value"><span id="humValue">--</span><span class="unit">%</span></div>
+            </div>
 
-            <section class="charts glass">
-                <h3>Real-time History</h3>
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="card-title"><i data-lucide="shield-check" class="i-small"></i> ANOMALY STATUS</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="anomalyDisplay"
+                        style="font-weight: 700; font-size: 1.25rem; color: var(--success);">NORMAL</span>
+                    <div id="anomalyIndicator" class="status-dot online"></div>
+                </div>
+                <p id="anomalyLastCheck" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.5rem;">Last
+                    checked: Just now</p>
+            </div>
+
+            <!-- Mode & Alerts -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="card-title"><i data-lucide="bot" class="i-small"></i> SYSTEM MODE</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="modeDisplay" style="font-weight: 700; font-size: 1.25rem;">AUTO</span>
+                    <button id="toggleMode" class="btn-train" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Switch
+                        to Manual</button>
+                </div>
+                <div id="alertBox"
+                    style="margin-top: 1rem; padding: 0.5rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); font-size: 0.75rem; display: none;">
+                    <i data-lucide="alert-triangle" class="i-small"></i> <span id="alertMsg"></span>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="card chart-container">
+                <div class="card-title"><i data-lucide="line-chart" class="i-small"></i> SENSOR TRENDS</div>
                 <canvas id="sensorChart"></canvas>
-            </section>
+            </div>
 
-            <section class="logs-section glass">
-                <div class="logs-header">
-                    <h3>System Logs (DynamoDB)</h3>
-                    <button id="refresh-logs" class="btn">Refresh Logs</button>
-                    <button id="train-model" class="btn secondary">Retrain AI (S3)</button>
+            <!-- Controls -->
+            <div class="card">
+                <div class="card-title"><i data-lucide="gamepad-2" class="i-small"></i> MANUAL OVERRIDE</div>
+                <div class="controls">
+                    <div class="switch-group">
+                        <span class="icon-wrapper"><i data-lucide="wind" class="i-small"></i> Kipas</span>
+                        <label class="switch">
+                            <input type="checkbox" id="kipasSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-group">
+                        <span class="icon-wrapper"><i data-lucide="cloud-rain" class="i-small"></i> Mist</span>
+                        <label class="switch">
+                            <input type="checkbox" id="mistSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-group">
+                        <span class="icon-wrapper"><i data-lucide="flame" class="i-small"></i> Heater</span>
+                        <label class="switch">
+                            <input type="checkbox" id="heaterSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
-                <div class="table-container">
-                    <table id="logs-table">
+            </div>
+
+            <!-- Settings -->
+            <div class="card">
+                <div class="card-title"><i data-lucide="settings" class="i-small"></i> CONFIGURATION</div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-muted);">Temp Threshold: <span
+                                id="thresholdVal">30</span>°C</label>
+                        <input type="range" id="thresholdSlider" min="20" max="45" step="0.5" value="30"
+                            style="width: 100%; margin-top: 0.5rem;">
+                    </div>
+                    <button id="trainBtn" class="btn-train">Train AI Models</button>
+                    <div id="alarmInfo" style="font-size: 0.75rem; color: var(--text-muted);">
+                        CloudWatch Alarm: <span id="alarmStatus">---</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Historical Analysis -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-title" style="display: flex; justify-content: space-between;">
+                    <span class="icon-wrapper"><i data-lucide="bar-chart-3" class="i-small"></i> HISTORICAL PREDICTION
+                        ANALYSIS</span>
+                    <button id="refreshHistBtn" class="btn-train"
+                        style="padding: 0.25rem 0.75rem; font-size: 0.7rem;">Run Batch Analysis</button>
+                </div>
+                <div style="margin-top: 1rem; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                         <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Temp (°C)</th>
-                                <th>Hum (%)</th>
-                                <th>Kipas</th>
-                                <th>Mist Maker</th>
-                                <th>Heater</th>
-                                <th>Mode</th>
+                            <tr style="text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                <th style="padding: 0.5rem;">Time</th>
+                                <th style="padding: 0.5rem;">Temp</th>
+                                <th style="padding: 0.5rem;">Hum</th>
+                                <th style="padding: 0.5rem;">AI Prediction</th>
+                                <th style="padding: 0.5rem;">Anomaly</th>
                             </tr>
                         </thead>
-                        <tbody id="logs-body">
-                            <!-- Logs will appear here -->
+                        <tbody id="histTableBody">
+                            <tr>
+                                <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">No
+                                    historical analysis yet. Click 'Run Batch Analysis'.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2026 Noc Lab IoT AI - Powered by LocalStack & FastAPI</p>
-        </footer>
+            </div>
+        </div>
     </div>
-
-    <script>
-        const API_BASE = "http://localhost:8000";
-        let currentState = { mode: "AUTO", kipas: 0, mist: 0, heater: 0 };
-
-        // Initialize Chart
-        const ctx = document.getElementById('sensorChart').getContext('2d');
-        const sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Temperature (°C)',
-                    borderColor: '#ff4b2b',
-                    data: [],
-                    tension: 0.4
-                }, {
-                    label: 'Humidity (%)',
-                    borderColor: '#00d2ff',
-                    data: [],
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: '#fff' } }
-                },
-                scales: {
-                    x: { ticks: { color: '#aaa' } },
-                    y: { ticks: { color: '#aaa' } }
-                }
-            }
-        });
-
-        // WebSocket Setup
-        const ws = new WebSocket(`ws://${location.hostname}:8000/ws/ui`);
-        
-        ws.onopen = () => {
-            document.getElementById('connection-status').innerText = "Real-time Online";
-            document.getElementById('connection-status').className = "online";
-        };
-
-        ws.onclose = () => {
-            document.getElementById('connection-status').innerText = "Offline";
-            document.getElementById('connection-status').className = "offline";
-        };
-
-        ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.type === "sensor_update") {
-                updateMetrics(msg.data);
-            } else if (msg.type === "state_update") {
-                syncState(msg.state);
-            } else if (msg.type === "sys_alert") {
-                showAlert(msg.message);
-            }
-        };
-
-        function showAlert(message) {
-            const banner = document.getElementById('alert-banner');
-            banner.innerText = message;
-            banner.style.display = 'block';
-            setTimeout(() => { banner.style.display = 'none'; }, 5000);
-        }
-
-        function updateMetrics(data) {
-            document.getElementById('temp-val').innerText = `${data.temp}°C`;
-            document.getElementById('hum-val').innerText = `${data.hum}%`;
-            document.getElementById('kipas-val').innerText = data.led_status;
-            document.getElementById('mist-val').innerText = data.mist_status;
-            document.getElementById('heater-val').innerText = data.heater_status;
-            document.getElementById('mode-val').innerText = data.mode_status;
-
-            // Update toggles based on real-time data
-            syncToggles({
-                kipas: data.led_status === "ON" ? 1 : 0,
-                mist: data.mist_status === "ON" ? 1 : 0,
-                heater: data.heater_status === "ON" ? 1 : 0,
-                mode: data.mode_status
-            });
-
-            // Add new row to the top of the table
-            const tbody = document.getElementById('logs-body');
-            const row = `<tr>
-                <td>${new Date(data.timestamp).toLocaleTimeString()}</td>
-                <td>${data.temp}</td>
-                <td>${data.hum}</td>
-                <td><span class="badge ${data.led_status}">${data.led_status}</span></td>
-                <td><span class="badge ${data.mist_status || 'OFF'}">${data.mist_status || 'OFF'}</span></td>
-                <td><span class="badge ${data.heater_status || 'OFF'}">${data.heater_status || 'OFF'}</span></td>
-                <td><span class="badge ${data.mode_status || 'ON'}">${data.mode_status}</span></td>
-            </tr>`;
-            tbody.insertAdjacentHTML('afterbegin', row);
-            if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
-
-            // Update Chart
-            sensorChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
-            sensorChart.data.datasets[0].data.push(data.temp);
-            sensorChart.data.datasets[1].data.push(data.hum);
-            if (sensorChart.data.labels.length > 20) {
-                sensorChart.data.labels.shift();
-                sensorChart.data.datasets[0].data.shift();
-                sensorChart.data.datasets[1].data.shift();
-            }
-            sensorChart.update();
-        }
-
-        function syncState(state) {
-            currentState = state;
-            document.getElementById('mode-val').innerText = state.mode;
-            document.getElementById('kipas-val').innerText = state.kipas ? "ON" : "OFF";
-            document.getElementById('mist-val').innerText = state.mist ? "ON" : "OFF";
-            document.getElementById('heater-val').innerText = state.heater ? "ON" : "OFF";
-            
-            syncToggles(state);
-        }
-
-        function syncToggles(state) {
-            document.getElementById('tg-kipas').checked = state.kipas === 1;
-            document.getElementById('tg-mist').checked = state.mist === 1;
-            document.getElementById('tg-heater').checked = state.heater === 1;
-            document.getElementById('tg-mode').checked = state.mode === "MANUAL";
-            document.getElementById('mode-label').innerText = `Mode: ${state.mode}`;
-            
-            if (state.temp_threshold) {
-                document.getElementById('input-threshold').value = state.temp_threshold;
-            }
-        }
-
-        async function sendControl(component, status) {
-            try {
-                await fetch(`${API_BASE}/control`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ component, status })
-                });
-            } catch (e) { console.error("Control failed", e); }
-        }
-
-        // Toggle Listeners
-        document.getElementById('tg-kipas').onchange = (e) => sendControl('kipas', e.target.checked ? 1 : 0);
-        document.getElementById('tg-mist').onchange = (e) => sendControl('mist', e.target.checked ? 1 : 0);
-        document.getElementById('tg-heater').onchange = (e) => sendControl('heater', e.target.checked ? 1 : 0);
-        document.getElementById('tg-mode').onchange = (e) => sendControl('mode', e.target.checked ? 1 : 0);
-        
-        document.getElementById('btn-save-threshold').onclick = () => {
-            const val = document.getElementById('input-threshold').value;
-            sendControl('threshold', parseFloat(val));
-            alert(`Threshold updated to ${val}°C`);
-        };
-
-        async function fetchLogs() {
-            try {
-                const res = await fetch(`${API_BASE}/logs`);
-                const data = await res.json();
-                const tbody = document.getElementById('logs-body');
-                tbody.innerHTML = '';
-
-                data.forEach(log => {
-                    const row = `<tr>
-                        <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
-                        <td>${log.temp}</td>
-                        <td>${log.hum}</td>
-                        <td><span class="badge ${log.led_status}">${log.led_status}</span></td>
-                        <td><span class="badge ${log.mist_status || 'OFF'}">${log.mist_status || 'OFF'}</span></td>
-                        <td><span class="badge ${log.heater_status || 'OFF'}">${log.heater_status || 'OFF'}</span></td>
-                        <td><span class="badge ${log.mode_status || 'ON'}">${log.mode_status}</span></td>
-                    </tr>`;
-                    tbody.innerHTML += row;
-                });
-            } catch (e) {
-                console.error("Failed to fetch logs", e);
-            }
-        }
-
-        async function fetchAlarmStatus() {
-            try {
-                const res = await fetch(`${API_BASE}/alarms`);
-                const data = await res.json();
-                const card = document.getElementById('alarm-card');
-                const val = document.getElementById('alarm-val');
-                const reason = document.getElementById('alarm-reason');
-
-                val.innerText = data.state;
-                reason.innerText = data.reason;
-
-                // Update styles
-                card.className = `card glass alarm-card ${data.state}`;
-                val.className = `value ${data.state}`;
-            } catch (e) {
-                console.error("Failed to fetch alarm status", e);
-            }
-        }
-
-        // Poll alarms every 10 seconds
-        setInterval(fetchAlarmStatus, 10000);
-        fetchAlarmStatus();
-
-        document.getElementById('refresh-logs').onclick = fetchLogs;
-        // ... (rest of the code)
-
-        document.getElementById('train-model').onclick = async () => {
-            if (!confirm("Start AI Training and upload to LocalStack S3?")) return;
-            const btn = document.getElementById('train-model');
-            btn.innerText = "Training...";
-            try {
-                const res = await fetch(`${API_BASE}/train`, { method: 'POST' });
-                const result = await res.json();
-                alert(result.message);
-            } catch (e) {
-                alert("Training failed!");
-            } finally {
-                btn.innerText = "Retrain AI (S3)";
-            }
-        };
-
-        fetchLogs();
-    </script>
+    <script src="app.js"></script>
 </body>
 
 </html>
